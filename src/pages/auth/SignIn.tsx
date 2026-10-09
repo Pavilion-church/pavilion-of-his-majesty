@@ -7,6 +7,27 @@ type SignInLocationState = {
   from?: string;
 };
 
+type AccountRole = "member" | "admin" | "super_admin";
+
+function getSafeDestination(from: string | undefined, role: AccountRole) {
+  const isAdmin = role === "admin" || role === "super_admin";
+
+  // Accept internal app paths only.
+  const safeFrom =
+    from?.startsWith("/") && !from.startsWith("//") ? from : null;
+
+  if (!safeFrom) {
+    return isAdmin ? "/admin" : "/member";
+  }
+
+  // A regular member must not be redirected to an admin route.
+  if (!isAdmin && (safeFrom === "/admin" || safeFrom.startsWith("/admin/"))) {
+    return "/member";
+  }
+
+  return safeFrom;
+}
+
 export default function SignIn() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -15,14 +36,12 @@ export default function SignIn() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     setError("");
 
     const cleanEmail = email.trim().toLowerCase();
@@ -56,12 +75,42 @@ export default function SignIn() {
         return;
       }
 
-      const destination = state?.from || "/";
+      // Load the role from the signed-in user's own profile.
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .maybeSingle();
 
+      if (profileError || !profile?.role) {
+        console.error(
+          "Unable to load the signed-in user's role:",
+          profileError,
+        );
+
+        await supabase.auth.signOut();
+
+        setError(
+          "We signed you in but couldn't verify your account permissions. Please try again, and contact the church administrator if the problem continues.",
+        );
+        return;
+      }
+
+      const role = profile.role as AccountRole;
+
+      if (!["member", "admin", "super_admin"].includes(role)) {
+        await supabase.auth.signOut();
+
+        setError(
+          "Your account has an unrecognized role. Please contact the church administrator.",
+        );
+        return;
+      }
+
+      const destination = getSafeDestination(state?.from, role);
       navigate(destination, { replace: true });
     } catch (err) {
       console.error(err);
-
       setError("Something went wrong while signing you in. Please try again.");
     } finally {
       setLoading(false);
@@ -161,7 +210,6 @@ export default function SignIn() {
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#07152F] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#0d234d] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading && <Loader2 size={18} className="animate-spin" />}
-
           {loading ? "Signing in..." : "Sign in"}
         </button>
       </form>

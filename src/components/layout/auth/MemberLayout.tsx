@@ -1,6 +1,6 @@
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import {
-  ArrowLeft,
   Cake,
   CircleUserRound,
   HandCoins,
@@ -34,7 +34,12 @@ const memberNavigation = [
 ];
 
 export default function MemberLayout() {
+  const location = useLocation();
   const { profile, signOut, isAdmin } = useAuth();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [location.pathname]);
 
   const displayName = profile?.first_name || profile?.last_name || "Member";
 
@@ -131,16 +136,6 @@ export default function MemberLayout() {
                 );
               })}
             </nav>
-
-            <div className="mt-8 border-t border-[#07152F]/10 pt-5">
-              <Link
-                to="/"
-                className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#07152F]/65 transition hover:bg-[#07152F]/5 hover:text-[#07152F]"
-              >
-                <ArrowLeft size={18} />
-                Back to website
-              </Link>
-            </div>
           </div>
         </aside>
 

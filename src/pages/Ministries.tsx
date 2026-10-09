@@ -127,10 +127,6 @@ export default function Ministries() {
                     <h3 className="font-serif text-2xl font-semibold text-[#07152f]">
                       {ministry.name}
                     </h3>
-
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#07152f]/10 transition group-hover:border-[#d6b45a] group-hover:bg-[#07152f] group-hover:text-[#e2bd61]">
-                      <ArrowRight size={16} />
-                    </div>
                   </div>
 
                   <p className="mt-4 text-sm leading-7 text-gray-600">
@@ -145,9 +141,17 @@ export default function Ministries() {
                     </div>
                   )}
 
-                  <div className="mt-6 text-xs font-semibold uppercase tracking-[0.16em] text-[#b18a32] transition group-hover:text-[#07152f]">
-                    Learn more
-                  </div>
+                  <Link
+                    to="/get-involved"
+                    className="mt-6 inline-flex w-fit items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#b18a32] transition hover:text-[#07152f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6b45a] focus-visible:ring-offset-4"
+                    aria-label={`Get involved with the ${ministry.name}`}
+                  >
+                    Learn how to serve
+                    <ArrowRight
+                      size={15}
+                      className="transition-transform group-hover:translate-x-1"
+                    />
+                  </Link>
                 </div>
               </article>
             ))}

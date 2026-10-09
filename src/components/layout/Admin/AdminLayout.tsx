@@ -1,5 +1,4 @@
 import {
-  ArrowLeft,
   Cake,
   CalendarDays,
   LayoutDashboard,
@@ -9,7 +8,8 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { HandCoins } from "lucide-react";
 
 import { useAuth } from "../auth/AuthProvider";
@@ -29,7 +29,12 @@ const navigation = [
 ];
 
 export default function AdminLayout() {
+  const location = useLocation();
   const { profile, signOut, isSuperAdmin } = useAuth();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [location.pathname]);
 
   async function handleSignOut() {
     try {
@@ -121,16 +126,6 @@ export default function AdminLayout() {
                 );
               })}
             </nav>
-
-            <div className="mt-auto border-t border-[#07152F]/10 pt-4">
-              <Link
-                to="/"
-                className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-[#07152F]/65 transition hover:bg-[#07152F]/5 hover:text-[#07152F]"
-              >
-                <ArrowLeft size={18} />
-                Back to website
-              </Link>
-            </div>
           </div>
         </aside>
 

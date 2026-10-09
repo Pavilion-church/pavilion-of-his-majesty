@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 import {
   ArrowRight,
   CalendarDays,
@@ -12,7 +14,6 @@ import choirImage from "../assets/images/choir.jpeg";
 import worshipImage from "../assets/images/worship-service.jpeg";
 import youthImage from "../assets/images/youth-ministry.jpeg";
 import evangelismImage from "../assets/images/evangelism.jpeg";
-
 
 import { churchInfo, weeklyProgrammes } from "../assets/data";
 
@@ -79,13 +80,13 @@ export default function Home() {
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <a
-                href="/plan-your-visit"
+              <Link
+                to="/plan-your-visit"
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-[#d6b45a] px-6 py-3.5 text-sm font-semibold text-[#07152f] transition hover:bg-[#e2bd61] sm:px-7"
               >
                 Plan Your Visit
                 <ArrowRight size={17} />
-              </a>
+              </Link>
 
               <a
                 href="#this-week"
@@ -158,13 +159,13 @@ export default function Home() {
               discover their purpose in Christ.
             </p>
 
-            <a
-              href="/about"
+            <Link
+              to="/about"
               className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-[#07152f] transition hover:text-[#a18132]"
             >
               Discover our story
               <ArrowRight size={17} />
-            </a>
+            </Link>
           </div>
         </div>
       </section>
@@ -249,13 +250,13 @@ export default function Home() {
             </p>
           </div>
 
-          <a
-            href="/events"
+          <Link
+            to="/events"
             className="inline-flex w-fit items-center gap-2 rounded-full border border-[#d6b45a]/50 px-6 py-3.5 text-sm font-semibold text-[#e2bd61] transition hover:bg-[#d6b45a] hover:text-[#07152f]"
           >
             Explore Anniversary
             <ArrowRight size={17} />
-          </a>
+          </Link>
         </div>
       </section>
 
@@ -306,8 +307,8 @@ export default function Home() {
                     {ministry.description}
                   </p>
 
-                  <a
-                    href="/ministries"
+                  <Link
+                    to="/ministries"
                     className="mt-6 inline-flex w-fit items-center gap-2 text-sm font-semibold text-white"
                   >
                     Learn more
@@ -315,20 +316,20 @@ export default function Home() {
                       size={16}
                       className="transition group-hover:translate-x-1"
                     />
-                  </a>
+                  </Link>
                 </div>
               </article>
             ))}
           </div>
 
           <div className="mt-8 text-center">
-            <a
-              href="/ministries"
+            <Link
+              to="/ministries"
               className="inline-flex items-center gap-2 text-sm font-semibold text-[#07152f] hover:text-[#a18132]"
             >
               Explore all ministries
               <ArrowRight size={17} />
-            </a>
+            </Link>
           </div>
         </div>
       </section>
@@ -370,13 +371,13 @@ export default function Home() {
               as a people.
             </p>
 
-            <a
-              href="/plan-your-visit"
+            <Link
+              to="/plan-your-visit"
               className="mt-8 inline-flex w-fit items-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-[#07152f] transition hover:bg-[#e2bd61]"
             >
               Plan Your Visit
               <ArrowRight size={17} />
-            </a>
+            </Link>
           </div>
         </div>
       </section>
@@ -387,8 +388,8 @@ export default function Home() {
       <section className="bg-[#f8f6f1] px-5 py-20 sm:px-8 sm:py-24 lg:px-10 lg:py-28">
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-5 lg:grid-cols-3">
-            <a
-              href="/get-involved"
+            <Link
+              to="/get-involved"
               className="group rounded-2xl bg-[#07152f] p-8 transition hover:-translate-y-1 sm:p-10"
             >
               <HeartHandshake className="text-[#d6b45a]" size={28} />
@@ -408,10 +409,10 @@ export default function Home() {
                   className="transition group-hover:translate-x-1"
                 />
               </span>
-            </a>
+            </Link>
 
-            <a
-              href="/cooperative"
+            <Link
+              to="/cooperative"
               className="group rounded-2xl border border-[#07152f]/10 bg-white p-8 transition hover:-translate-y-1 sm:p-10"
             >
               <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#07152f] text-[#d6b45a]">
@@ -434,10 +435,10 @@ export default function Home() {
                   className="transition group-hover:translate-x-1"
                 />
               </span>
-            </a>
+            </Link>
 
-            <a
-              href="/give"
+            <Link
+              to="/give"
               className="group rounded-2xl border border-[#07152f]/10 bg-[#e9dfc7] p-8 transition hover:-translate-y-1 sm:p-10"
             >
               <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#07152f] text-[#d6b45a]">
@@ -459,7 +460,7 @@ export default function Home() {
                   className="transition group-hover:translate-x-1"
                 />
               </span>
-            </a>
+            </Link>
           </div>
         </div>
       </section>
@@ -485,19 +486,21 @@ export default function Home() {
 
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <a
-              href="/plan-your-visit"
+              href="https://www.google.com/maps/search/?api=1&query=Lane+4+Oko+Oba%2C+Alapini+Street%2C+Akinmoorin%2C+Oyo%2C+Oyo+State%2C+Nigeria"
+              target="_blank"
+              rel="noreferrer"
               className="inline-flex items-center justify-center gap-2 rounded-full bg-[#d6b45a] px-7 py-3.5 text-sm font-semibold text-[#07152f] transition hover:bg-[#e2bd61]"
             >
               Get Directions
               <ArrowRight size={17} />
             </a>
 
-            <a
-              href="/contact"
+            <Link
+              to="/contact"
               className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 px-7 py-3.5 text-sm font-semibold text-white transition hover:border-white/40 hover:bg-white/5"
             >
               Contact Us
-            </a>
+            </Link>
           </div>
         </div>
       </section>
