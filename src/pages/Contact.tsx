@@ -1,16 +1,62 @@
 import { type FormEvent, useState } from "react";
 import { Mail, MapPin, Phone, Send } from "lucide-react";
 import { churchInfo } from "../assets/data";
+import { supabase } from "../lib/supabase";
 
 export default function Contact() {
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setError("");
 
-    // Connect this form to Supabase through the existing
-    // form submission layer when the backend is ready.
-    setSubmitted(true);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const name = String(formData.get("name") ?? "").trim().replace(/\s+/g, " ");
+    const email = String(formData.get("email") ?? "").trim().toLowerCase();
+    const phone = String(formData.get("phone") ?? "").trim();
+    const subject = String(formData.get("subject") ?? "").trim();
+    const message = String(formData.get("message") ?? "").trim();
+    const namePattern = /^[\p{L}][\p{L}\s'-]*$/u;
+    const phoneDigits = phone.replace(/\D/g, "");
+
+    if (!namePattern.test(name) || name.length > 100) {
+      setError("Please enter a valid name using letters, spaces, hyphens or apostrophes.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    if (phone && (!/^\+?[\d\s()-]+$/.test(phone) || phoneDigits.length < 7 || phoneDigits.length > 15)) {
+      setError("Please enter a valid phone number (7–15 digits).");
+      return;
+    }
+    if (!subject || subject.length > 180 || !message || message.length > 5000) {
+      setError("Please provide a subject and message within the allowed length.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const { error: insertError } = await supabase.from("contact_submissions").insert({
+        name,
+        email,
+        phone: phone || null,
+        subject,
+        message,
+      });
+      if (insertError) throw insertError;
+      form.reset();
+      setSubmitted(true);
+    } catch (submissionError) {
+      console.error("Contact form submission failed:", submissionError);
+      setError("We couldn't send your message right now. Please try again or contact us directly by email.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -170,6 +216,13 @@ export default function Contact() {
                       id="name"
                       name="name"
                       type="text"
+                      autoComplete="name"
+                      maxLength={100}
+                      pattern="[\p{L}][\p{L}\s'-]*"
+                      title="Use letters, spaces, hyphens or apostrophes."
+                      onChange={(event) => {
+                        event.currentTarget.value = event.currentTarget.value.replace(/[^\p{L}\s'-]/gu, "");
+                      }}
                       required
                       className="mt-2 w-full rounded-lg border border-[#111827]/15 bg-white px-4 py-3 outline-none transition focus:border-[#d6b45a]"
                     />
@@ -187,6 +240,8 @@ export default function Contact() {
                       id="email"
                       name="email"
                       type="email"
+                      autoComplete="email"
+                      maxLength={254}
                       required
                       className="mt-2 w-full rounded-lg border border-[#111827]/15 bg-white px-4 py-3 outline-none transition focus:border-[#d6b45a]"
                     />
@@ -205,6 +260,16 @@ export default function Contact() {
                     id="phone"
                     name="phone"
                     type="tel"
+                    autoComplete="tel"
+                    inputMode="tel"
+                    maxLength={24}
+                    pattern="\+?[0-9 ()-]{7,24}"
+                    title="Use 7–15 digits, optionally with a leading +, spaces, brackets or hyphens."
+                    onChange={(event) => {
+                      const input = event.currentTarget;
+                      const cleaned = input.value.replace(/[^0-9+ ()-]/g, "");
+                      input.value = cleaned.startsWith("+") ? "+" + cleaned.slice(1).replace(/\+/g, "") : cleaned.replace(/\+/g, "");
+                    }}
                     className="mt-2 w-full rounded-lg border border-[#111827]/15 bg-white px-4 py-3 outline-none transition focus:border-[#d6b45a]"
                   />
                 </div>
@@ -238,16 +303,24 @@ export default function Contact() {
                     id="message"
                     name="message"
                     rows={6}
+                    maxLength={5000}
                     required
                     className="mt-2 w-full resize-none rounded-lg border border-[#111827]/15 bg-white px-4 py-3 outline-none transition focus:border-[#d6b45a]"
                   />
                 </div>
 
+                {error && (
+                  <p role="alert" className="mt-5 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+                    {error}
+                  </p>
+                )}
+
                 <button
                   type="submit"
-                  className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#07152f] px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-[#102653]"
+                  disabled={submitting}
+                  className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#07152f] px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-[#102653] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Send Message
+                  {submitting ? "Sending..." : "Send Message"}
                   <Send size={17} />
                 </button>
               </form>
