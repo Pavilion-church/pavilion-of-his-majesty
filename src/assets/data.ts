@@ -18,7 +18,7 @@ export const churchInfo = {
     city: "Akinmoorin",
     state: "Oyo State",
     country: "Nigeria",
-    full: "Lane 4 Oko Oba, Alapini Street, Akinmoorin, Oyo, Oyo State, Nigeria",
+    full: "Lane 4 Oko Oba, Alapini Street, Akinmoorin, Oyo State, Nigeria",
   },
 
   contact: {
@@ -164,3 +164,73 @@ export const givingInfo = {
   accountName: "RCCG The Pavilion",
   note: "Thank you for supporting the work of God through your giving. Please ensure you confirm the account details before making a transfer.",
 };
+
+
+export const churchStory = {
+  eyebrow: "Our Story",
+  title: "A journey of faith, growth and God's faithfulness.",
+  introduction:
+    "The Pavilion of His Majesty is a parish of the Redeemed Christian Church of God (RCCG), with a history shaped by faith, commitment and the dedication of its early members.",
+  paragraphs: [
+    "The parish's journey began in connection with the April 2006 Let's Go-Afishing programme. Although the parish was established during that period, services commenced in May 2006 under the leadership of Pastor (Mrs.) Doyin Dina.",
+    "From a humble beginning of seven members, the congregation initially worshipped in a classroom at Peace Nursery and Primary School, opposite Jnique Hotel in Mabolaje, Oyo. The parish later moved to a borrowed parcel of land on Kola Sanusi Street, where it remained until 2009.",
+    "In 2008, land was purchased for the parish's permanent location at Lane 4, off Unique Hotel Road, Oko-Oba Abojupa area of Oyo, Oyo State. The foundation of the church building now in use was laid in 2009, marking an important step in the development of the parish's permanent worship centre.",
+  ],
+};
+
+export const churchJourney = [
+  {
+    year: "2006",
+    title: "The Beginning",
+    description:
+      "The parish was established in connection with the April Let's Go-Afishing programme, and services began in May under Pastor (Mrs.) Doyin Dina.",
+  },
+  {
+    year: "2006",
+    title: "A Small but Faithful Beginning",
+    description:
+      "The congregation began with seven members, meeting in a classroom at Peace Nursery and Primary School in Mabolaje, Oyo.",
+  },
+  {
+    year: "2008",
+    title: "A Permanent Home Secured",
+    description:
+      "Land was purchased for the parish's permanent location in the Oko-Oba Abojupa area of Oyo.",
+  },
+  {
+    year: "2009",
+    title: "Building for the Future",
+    description:
+      "The foundation of the church building now in use was laid at the permanent site.",
+  },
+];
+
+export const churchLeadership = {
+  pastor: "Pastor Dr Ayodele Okegbade",
+  role: "Pastor in charge",
+  introduction:
+    "The parish is currently overseen by Pastor Dr Ayodele Okegbade, who provides pastoral leadership as the church continues its work of worship, spiritual growth and service.",
+};
+
+export const churchValues = [
+  {
+    title: "Worship",
+    description:
+      "Honouring God through heartfelt worship and a life devoted to Him.",
+  },
+  {
+    title: "God's Word",
+    description:
+      "Growing in faith through the teaching, understanding and application of Scripture.",
+  },
+  {
+    title: "Prayer",
+    description: "Cultivating a life of prayer and dependence on God.",
+  },
+  {
+    title: "Fellowship",
+    description:
+      "Building a welcoming church family where people can grow together in faith.",
+  },
+];
+

@@ -7,10 +7,11 @@ import {
   Megaphone,
   ShieldCheck,
   Users,
+  House,
+  HandCoins,
 } from "lucide-react";
 import { useEffect } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { HandCoins } from "lucide-react";
 
 import { useAuth } from "../auth/AuthProvider";
 
@@ -63,7 +64,7 @@ export default function AdminLayout() {
             </div>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <div className="hidden text-right sm:block">
               <p className="text-sm font-medium text-[#07152F]">
                 {profile?.first_name || "Administrator"}
@@ -73,10 +74,21 @@ export default function AdminLayout() {
               </p>
             </div>
 
+            <Link
+              to="/"
+              aria-label="Go to public home page"
+              title="Go to Home"
+              className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-[#07152F]/10 px-3 py-2.5 text-sm font-medium text-[#07152F] transition hover:border-[#D6B45A]/70 hover:bg-[#F8F6F1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6B45A]"
+            >
+              <House size={16} />
+              <span className="hidden sm:inline">Go to Home</span>
+              <span className="sm:hidden">Home</span>
+            </Link>
+
             <button
               type="button"
               onClick={handleSignOut}
-              className="inline-flex items-center gap-2 rounded-xl border border-[#07152F]/10 px-3 py-2.5 text-sm font-medium text-[#07152F] transition hover:bg-[#07152F]/5"
+              className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-[#07152F]/10 px-3 py-2.5 text-sm font-medium text-[#07152F] transition hover:bg-[#07152F]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6B45A]"
             >
               <LogOut size={16} />
               <span className="hidden sm:inline">Sign out</span>

@@ -6,7 +6,6 @@ import {
   Clock3,
   HeartHandshake,
   MapPin,
-  Play,
 } from "lucide-react";
 
 import churchBuilding from "../assets/images/church-building.png";
@@ -347,10 +346,6 @@ export default function Home() {
             />
 
             <div className="absolute inset-0 bg-[#07152f]/25" />
-
-            <div className="absolute bottom-7 left-7 flex h-14 w-14 items-center justify-center rounded-full bg-white text-[#07152f] shadow-xl">
-              <Play size={19} fill="currentColor" />
-            </div>
           </div>
 
           <div className="flex flex-col justify-center p-8 sm:p-12 lg:p-16">

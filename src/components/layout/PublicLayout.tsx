@@ -30,8 +30,10 @@ export default function PublicLayout() {
     );
   }
 
-  if (isAuthenticated) {
-    return <Navigate to={isAdmin ? "/admin" : "/member"} replace />;
+  // Allow administrators to browse public pages without signing out.
+  // Continue redirecting authenticated members to their member dashboard.
+  if (isAuthenticated && !isAdmin) {
+    return <Navigate to="/member" replace />;
   }
 
   return (
