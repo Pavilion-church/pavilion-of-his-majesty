@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useState } from "react";
-import { CheckCircle2, Loader2, Save } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
+import { toast } from "react-toastify";
 
 import { useAuth } from "../../components/layout/auth/AuthProvider";
 import { supabase } from "../../lib/supabase";
@@ -13,7 +14,12 @@ function sanitizeName(value: string) {
 
 function sanitizePhone(value: string) {
   const cleaned = value.replace(/[^\d+ ()-]/g, "");
-  return (cleaned.startsWith("+") ? "+" + cleaned.slice(1).replace(/\+/g, "") : cleaned.replace(/\+/g, "")).slice(0, 24);
+
+  return (
+    cleaned.startsWith("+")
+      ? "+" + cleaned.slice(1).replace(/\+/g, "")
+      : cleaned.replace(/\+/g, "")
+  ).slice(0, 24);
 }
 
 function countDigits(value: string) {
@@ -26,10 +32,7 @@ export default function Profile() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
-
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   useEffect(() => {
     if (!profile) return;
@@ -41,75 +44,68 @@ export default function Profile() {
 
   function handleFirstNameChange(value: string) {
     setFirstName(sanitizeName(value));
-    setSuccess("");
-    setError("");
   }
 
   function handleLastNameChange(value: string) {
     setLastName(sanitizeName(value));
-    setSuccess("");
-    setError("");
   }
 
   function handlePhoneChange(value: string) {
     setPhone(sanitizePhone(value));
-    setSuccess("");
-    setError("");
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    setError("");
-    setSuccess("");
+    if (loading) return;
 
     const cleanFirstName = firstName.trim().replace(/\s{2,}/g, " ");
     const cleanLastName = lastName.trim().replace(/\s{2,}/g, " ");
     const cleanPhone = phone.trim().replace(/\s{2,}/g, " ");
 
     if (!cleanFirstName) {
-      setError("Please enter your first name.");
+      toast.error("Please enter your first name.");
       return;
     }
 
     if (!/^[\p{L}\s'-]+$/u.test(cleanFirstName)) {
-      setError(
-        "First name can only contain letters, spaces, hyphens, and apostrophes.",
+      toast.error(
+        "First name can only contain letters, spaces, hyphens and apostrophes.",
       );
       return;
     }
 
     if (!cleanLastName) {
-      setError("Please enter your last name.");
+      toast.error("Please enter your last name.");
       return;
     }
 
     if (!/^[\p{L}\s'-]+$/u.test(cleanLastName)) {
-      setError(
-        "Last name can only contain letters, spaces, hyphens, and apostrophes.",
+      toast.error(
+        "Last name can only contain letters, spaces, hyphens and apostrophes.",
       );
       return;
     }
 
-    if (cleanPhone && countDigits(cleanPhone) < 10) {
-      setError("Please enter a valid phone number.");
-      return;
-    }
-
-    if (cleanPhone && countDigits(cleanPhone) > 15) {
-      setError("Phone number cannot contain more than 15 digits.");
+    if (
+      cleanPhone &&
+      (!/^\+?[0-9 ()-]{7,24}$/.test(cleanPhone) ||
+        countDigits(cleanPhone) < 10 ||
+        countDigits(cleanPhone) > 15)
+    ) {
+      toast.error("Enter a valid phone number with 10–15 digits.");
       return;
     }
 
     if (!user) {
-      setError("Your session could not be found. Please sign in again.");
+      toast.error("Your session could not be found. Please sign in again.");
       return;
     }
 
-    try {
-      setLoading(true);
+    setLoading(true);
 
-      const { error: updateError } = await supabase
+    try {
+      const { data: updatedProfile, error: updateError } = await supabase
         .from("profiles")
         .update({
           first_name: cleanFirstName,
@@ -117,20 +113,32 @@ export default function Profile() {
           phone: cleanPhone || null,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", user.id);
+        .eq("id", user.id)
+        .select("id")
+        .maybeSingle();
 
       if (updateError) {
         console.error("Profile update failed:", updateError);
-        setError("We couldn't update your profile. Please try again.");
+        toast.error("We couldn't update your profile. Please try again.");
+        return;
+      }
+
+      if (!updatedProfile) {
+        toast.error(
+          "Your profile was not updated. Please check your account permissions and try again.",
+        );
         return;
       }
 
       await refreshProfile();
 
-      setSuccess("Your profile has been updated successfully.");
+      toast.success("Your profile has been updated successfully.");
     } catch (err) {
-      console.error(err);
-      setError("Something went wrong while updating your profile.");
+      console.error("Unexpected profile update error:", err);
+
+      toast.error(
+        "Something went wrong while updating your profile. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -157,6 +165,20 @@ export default function Profile() {
         ? "Not approved"
         : "Pending review";
 
+  const membershipDescription =
+    profile.membership_status === "approved"
+      ? "Your church membership has been approved."
+      : profile.membership_status === "rejected"
+        ? "Your membership application has not been approved. Please contact the church for guidance."
+        : "Your membership application is awaiting review by the church.";
+
+  const membershipStatusClass =
+    profile.membership_status === "approved"
+      ? "bg-green-50 text-green-700"
+      : profile.membership_status === "rejected"
+        ? "bg-red-50 text-red-700"
+        : "bg-amber-50 text-amber-800";
+
   return (
     <section>
       <div className="mb-8">
@@ -172,26 +194,6 @@ export default function Profile() {
           Keep your Pavilion member information accurate and up to date.
         </p>
       </div>
-
-      {error && (
-        <div
-          role="alert"
-          className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm leading-6 text-red-700"
-        >
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div
-          role="status"
-          className="mb-6 flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 px-5 py-4 text-sm leading-6 text-green-700"
-        >
-          <CheckCircle2 size={18} className="mt-0.5 shrink-0" />
-
-          <span>{success}</span>
-        </div>
-      )}
 
       <div className="grid max-w-4xl gap-6 lg:grid-cols-[1fr_280px]">
         <div className="rounded-2xl border border-[#07152F]/10 bg-white p-6 sm:p-8">
@@ -307,7 +309,7 @@ export default function Profile() {
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#07152F] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0d234d] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#07152F] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0d234d] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? (
                   <Loader2 size={17} className="animate-spin" />
@@ -335,12 +337,18 @@ export default function Profile() {
               Membership
             </p>
 
-            <p className="mt-1 font-semibold text-[#07152F]">
+            <span
+              className={`mt-2 inline-flex rounded-full px-3 py-1.5 text-sm font-semibold ${membershipStatusClass}`}
+            >
               {membershipLabel}
-            </p>
+            </span>
           </div>
 
           <p className="mt-4 text-sm leading-6 text-[#07152F]/60">
+            {membershipDescription}
+          </p>
+
+          <p className="mt-3 text-sm leading-6 text-[#07152F]/60">
             Your membership status is managed by the church and cannot be
             changed from your account.
           </p>

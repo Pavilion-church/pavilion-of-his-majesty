@@ -4,6 +4,7 @@ import {
   Cake,
   CircleUserRound,
   HandCoins,
+  House,
   LayoutDashboard,
   LogOut,
 } from "lucide-react";
@@ -43,20 +44,26 @@ export default function MemberLayout() {
 
   const displayName = profile?.first_name || profile?.last_name || "Member";
 
-  const handleSignOut = async () => {
+  async function handleSignOut() {
     try {
       await signOut();
     } catch (error) {
       console.error("Unable to sign out:", error);
     }
-  };
+  }
+
+  const homeLinkClass =
+    "inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-[#07152F]/10 px-3 py-2 text-sm font-medium text-[#07152F] transition hover:border-[#D6B45A]/60 hover:bg-[#D6B45A]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6B45A] sm:px-4";
 
   return (
     <div className="min-h-screen bg-[#F8F6F1] text-[#111827]">
       <header className="sticky top-0 z-40 border-b border-[#07152F]/10 bg-white/95 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-8">
-          <Link to="/member" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#07152F] text-sm font-semibold text-[#E2BD61]">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-8">
+          <Link
+            to="/member"
+            className="flex min-w-0 shrink-0 items-center gap-3"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#07152F] text-sm font-semibold text-[#E2BD61]">
               P
             </div>
 
@@ -64,13 +71,12 @@ export default function MemberLayout() {
               <p className="text-sm font-semibold text-[#07152F]">
                 The Pavilion
               </p>
-
               <p className="text-xs text-[#07152F]/55">Member Area</p>
             </div>
           </Link>
 
-          <div className="flex items-center gap-3">
-            <span className="hidden text-sm text-[#07152F]/65 sm:block">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <span className="hidden max-w-40 truncate text-sm text-[#07152F]/65 md:block">
               Welcome, {displayName}
             </span>
 
@@ -83,10 +89,21 @@ export default function MemberLayout() {
               </Link>
             )}
 
+            <Link
+              to="/"
+              aria-label="Go to the church home page"
+              title="Go to Home"
+              className={homeLinkClass}
+            >
+              <House size={16} />
+              <span className="hidden sm:inline">Go to Home</span>
+              <span className="sm:hidden">Home</span>
+            </Link>
+
             <button
               type="button"
               onClick={handleSignOut}
-              className="inline-flex items-center gap-2 rounded-full border border-[#07152F]/10 px-3 py-2 text-sm font-medium text-[#07152F] transition hover:border-[#07152F]/20 hover:bg-[#07152F]/5"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-[#07152F]/10 px-3 py-2 text-sm font-medium text-[#07152F] transition hover:border-[#07152F]/20 hover:bg-[#07152F]/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6B45A]"
             >
               <LogOut size={16} />
               <span className="hidden sm:inline">Sign out</span>
@@ -95,7 +112,7 @@ export default function MemberLayout() {
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-7xl lg:grid-cols-[240px_1fr]">
+      <div className="mx-auto grid max-w-7xl lg:grid-cols-[240px_minmax(0,1fr)]">
         <aside className="hidden border-r border-[#07152F]/10 bg-white lg:block">
           <div className="sticky top-16 p-5">
             <div className="mb-6 rounded-2xl bg-[#07152F] p-5 text-white">
@@ -112,7 +129,7 @@ export default function MemberLayout() {
               </p>
             </div>
 
-            <nav className="space-y-1">
+            <nav aria-label="Member navigation" className="space-y-1">
               {memberNavigation.map((item) => {
                 const Icon = item.icon;
 
@@ -141,7 +158,10 @@ export default function MemberLayout() {
 
         <main className="min-w-0">
           <div className="border-b border-[#07152F]/10 bg-white lg:hidden">
-            <div className="flex gap-2 overflow-x-auto px-5 py-3">
+            <nav
+              aria-label="Member navigation"
+              className="flex gap-2 overflow-x-auto px-4 py-3 sm:px-5"
+            >
               {memberNavigation.map((item) => {
                 const Icon = item.icon;
 
@@ -164,7 +184,7 @@ export default function MemberLayout() {
                   </NavLink>
                 );
               })}
-            </div>
+            </nav>
           </div>
 
           <div className="min-h-[calc(100vh-4rem)] p-5 sm:p-8 lg:p-10">

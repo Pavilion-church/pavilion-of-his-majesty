@@ -16,6 +16,9 @@ type ReviewStatus = "pending" | "approved" | "rejected";
 type CelebrationStatus = "pending" | "completed" | "not_required";
 type RetentionStatus = "retained" | "review_required" | "deleted";
 
+const PHOTO_RETENTION_HOURS = 24;
+const PHOTO_RETENTION_MS = PHOTO_RETENTION_HOURS * 60 * 60 * 1000;
+
 type BirthdaySubmission = {
   id: string;
   user_id: string;
@@ -198,6 +201,28 @@ export default function AdminBirthdays() {
         "Mark the celebration completed or not required before deleting this photo.",
       );
       return;
+    }
+
+    if (record.celebration_status === "completed") {
+      if (!record.celebration_completed_at) {
+        setError(
+          "This celebration has no completion timestamp. Review the record before deleting its photo.",
+        );
+        return;
+      }
+
+      const eligibleAt =
+        new Date(record.celebration_completed_at).getTime() +
+        PHOTO_RETENTION_MS;
+      const remainingMs = eligibleAt - Date.now();
+
+      if (remainingMs > 0) {
+        const remainingHours = Math.ceil(remainingMs / (60 * 60 * 1000));
+        setError(
+          `This photo must be retained for at least 24 hours after celebration. Try again in approximately ${remainingHours} hour(s).`,
+        );
+        return;
+      }
     }
 
     const confirmed = window.confirm(
@@ -601,7 +626,14 @@ export default function AdminBirthdays() {
                       )}
 
                     {record.photo_path &&
-                      record.celebration_status !== "pending" && (
+                      record.celebration_status !== "pending" &&
+                      (record.celebration_status === "not_required" ||
+                        (record.celebration_completed_at !== null &&
+                          Date.now() >=
+                            new Date(
+                              record.celebration_completed_at,
+                            ).getTime() +
+                              PHOTO_RETENTION_MS)) && (
                         <button
                           type="button"
                           disabled={busyId === record.id}

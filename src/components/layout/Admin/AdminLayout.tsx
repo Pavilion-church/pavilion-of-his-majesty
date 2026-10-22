@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   Mail,
   LogOut,
-  Megaphone,
   ShieldCheck,
   Users,
   House,
@@ -21,7 +20,6 @@ const navigation = [
   { label: "Contact messages", to: "/admin/messages", icon: Mail },
   { label: "Members", to: "/admin/members", icon: Users },
   { label: "Events", to: "/admin/events", icon: CalendarDays },
-  { label: "Announcements", to: "/admin/announcements", icon: Megaphone },
   {
     label: "Cooperative Interest",
     to: "/admin/cooperative",

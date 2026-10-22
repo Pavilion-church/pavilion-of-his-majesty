@@ -1,89 +1,130 @@
-import { type FormEvent, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import {
+  useForm,
+  type SubmitErrorHandler,
+  type SubmitHandler,
+} from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "react-toastify";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
 const sanitizeName = (value: string) =>
-  value.replace(/[^\p{L}\s'-]/gu, "").replace(/\s{2,}/g, " ").slice(0, 50);
+  value
+    .replace(/[^\p{L}\s'-]/gu, "")
+    .replace(/\s{2,}/g, " ")
+    .slice(0, 50);
 
 const sanitizePhone = (value: string) => {
   const cleaned = value.replace(/[^\d+ ()-]/g, "");
-  return (cleaned.startsWith("+") ? "+" + cleaned.slice(1).replace(/\+/g, "") : cleaned.replace(/\+/g, "")).slice(0, 24);
+
+  return (
+    cleaned.startsWith("+")
+      ? "+" + cleaned.slice(1).replace(/\+/g, "")
+      : cleaned.replace(/\+/g, "")
+  ).slice(0, 24);
 };
 
-const isValidPhone = (value: string) => {
-  const digits = value.replace(/\D/g, "");
-  return digits.length >= 10 && digits.length <= 15;
-};
+const signUpSchema = z
+  .object({
+    firstName: z
+      .string()
+      .trim()
+      .min(1, "Please enter your first name.")
+      .max(50, "First name must not exceed 50 characters.")
+      .regex(
+        /^[\p{L}\s'-]+$/u,
+        "Use letters, spaces, hyphens and apostrophes only.",
+      ),
+    lastName: z
+      .string()
+      .trim()
+      .min(1, "Please enter your last name.")
+      .max(50, "Last name must not exceed 50 characters.")
+      .regex(
+        /^[\p{L}\s'-]+$/u,
+        "Use letters, spaces, hyphens and apostrophes only.",
+      ),
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .min(1, "Please enter your email address.")
+      .email("Please enter a valid email address.")
+      .max(254, "Email address is too long."),
+    phone: z
+      .string()
+      .trim()
+      .refine(
+        (value) => {
+          if (!value) return true;
+          const digits = value.replace(/\D/g, "");
+          return digits.length >= 10 && digits.length <= 15;
+        },
+        { message: "Enter a valid phone number using 10–15 digits." },
+      ),
+    password: z.string().min(8, "Password must be at least 8 characters."),
+    confirmPassword: z.string().min(1, "Please confirm your password."),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match.",
+    path: ["confirmPassword"],
+  });
+
+type SignUpFormValues = z.infer<typeof signUpSchema>;
 
 export default function SignUp() {
   const navigate = useNavigate();
 
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<SignUpFormValues>({
+    resolver: zodResolver(signUpSchema),
+    mode: "onTouched",
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      password: "",
+      confirmPassword: "",
+    },
+  });
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError("");
+  const inputClassName =
+    "w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20";
 
-    const cleanFirstName = firstName.trim();
-    const cleanLastName = lastName.trim();
-    const cleanEmail = email.trim().toLowerCase();
-    const cleanPhone = phone.trim();
+  const invalidInputClassName =
+    "border-red-400 focus:border-red-500 focus:ring-red-200";
 
-    if (!cleanFirstName || !cleanLastName) {
-      setError("Please enter your first and last name.");
-      return;
+  const onInvalid: SubmitErrorHandler<SignUpFormValues> = (formErrors) => {
+    const firstError = Object.values(formErrors)[0]?.message;
+
+    if (typeof firstError === "string") {
+      toast.error(firstError);
     }
+  };
 
-    if (
-      !/^[\p{L}\s'-]+$/u.test(cleanFirstName) ||
-      !/^[\p{L}\s'-]+$/u.test(cleanLastName)
-    ) {
-      setError(
-        "Names can only contain letters, spaces, hyphens and apostrophes.",
-      );
-      return;
-    }
-
-    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
-      setError("Please enter a valid email address.");
-      return;
-    }
-
-    if (cleanPhone && !isValidPhone(cleanPhone)) {
-      setError("Please enter a valid phone number.");
-      return;
-    }
-
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-
+  const onSubmit: SubmitHandler<SignUpFormValues> = async (values) => {
     try {
-      setLoading(true);
+      const cleanFirstName = values.firstName.trim();
+      const cleanLastName = values.lastName.trim();
+      const cleanEmail = values.email.trim().toLowerCase();
+      const cleanPhone = values.phone.trim();
 
       const { error: signUpError } = await supabase.auth.signUp({
         email: cleanEmail,
-        password,
+        password: values.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/verify-email`,
+          emailRedirectTo: "https://pavilionofhismajesty.com/verify-email",
           data: {
             first_name: cleanFirstName,
             last_name: cleanLastName,
@@ -93,9 +134,11 @@ export default function SignUp() {
       });
 
       if (signUpError) {
-        setError(signUpError.message);
+        toast.error(signUpError.message);
         return;
       }
+
+      toast.success("Account created. Please check your email to verify it.");
 
       navigate("/verify-email", {
         replace: true,
@@ -103,15 +146,13 @@ export default function SignUp() {
           email: cleanEmail,
         },
       });
-    } catch (err) {
-      console.error(err);
-      setError(
+    } catch (error) {
+      console.error("Sign-up error:", error);
+      toast.error(
         "Something went wrong while creating your account. Please try again.",
       );
-    } finally {
-      setLoading(false);
     }
-  }
+  };
 
   return (
     <div>
@@ -129,16 +170,11 @@ export default function SignUp() {
         </p>
       </div>
 
-      {error && (
-        <div
-          role="alert"
-          className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700"
-        >
-          {error}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form
+        onSubmit={handleSubmit(onSubmit, onInvalid)}
+        className="space-y-5"
+        noValidate
+      >
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label
@@ -151,14 +187,31 @@ export default function SignUp() {
             <input
               id="firstName"
               type="text"
-              value={firstName}
-              onChange={(e) => setFirstName(sanitizeName(e.target.value))}
               autoComplete="given-name"
               maxLength={50}
-              required
               placeholder="First name"
-              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20"
+              aria-invalid={Boolean(errors.firstName)}
+              aria-describedby={
+                errors.firstName ? "firstName-error" : undefined
+              }
+              {...register("firstName", {
+                onChange: (event) => {
+                  const sanitized = sanitizeName(event.target.value);
+                  if (sanitized !== event.target.value) {
+                    setValue("firstName", sanitized, {
+                      shouldValidate: true,
+                    });
+                  }
+                },
+              })}
+              className={`${inputClassName} ${errors.firstName ? invalidInputClassName : ""}`}
             />
+
+            {errors.firstName && (
+              <p id="firstName-error" className="mt-1 text-xs text-red-600">
+                {errors.firstName.message}
+              </p>
+            )}
           </div>
 
           <div>
@@ -172,14 +225,29 @@ export default function SignUp() {
             <input
               id="lastName"
               type="text"
-              value={lastName}
-              onChange={(e) => setLastName(sanitizeName(e.target.value))}
               autoComplete="family-name"
               maxLength={50}
-              required
               placeholder="Last name"
-              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20"
+              aria-invalid={Boolean(errors.lastName)}
+              aria-describedby={errors.lastName ? "lastName-error" : undefined}
+              {...register("lastName", {
+                onChange: (event) => {
+                  const sanitized = sanitizeName(event.target.value);
+                  if (sanitized !== event.target.value) {
+                    setValue("lastName", sanitized, {
+                      shouldValidate: true,
+                    });
+                  }
+                },
+              })}
+              className={`${inputClassName} ${errors.lastName ? invalidInputClassName : ""}`}
             />
+
+            {errors.lastName && (
+              <p id="lastName-error" className="mt-1 text-xs text-red-600">
+                {errors.lastName.message}
+              </p>
+            )}
           </div>
         </div>
 
@@ -191,14 +259,20 @@ export default function SignUp() {
           <input
             id="email"
             type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
             maxLength={254}
-            required
             placeholder="you@example.com"
-            className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20"
+            aria-invalid={Boolean(errors.email)}
+            aria-describedby={errors.email ? "email-error" : undefined}
+            {...register("email")}
+            className={`${inputClassName} ${errors.email ? invalidInputClassName : ""}`}
           />
+
+          {errors.email && (
+            <p id="email-error" className="mt-1 text-xs text-red-600">
+              {errors.email.message}
+            </p>
+          )}
         </div>
 
         <div>
@@ -210,16 +284,30 @@ export default function SignUp() {
           <input
             id="phone"
             type="tel"
-            value={phone}
-            onChange={(e) => setPhone(sanitizePhone(e.target.value))}
             autoComplete="tel"
             inputMode="tel"
             maxLength={24}
-            pattern="\+?[0-9 ()-]{7,24}"
-            title="Use 10–15 digits, optionally with a leading +, spaces, brackets or hyphens."
             placeholder="+234 703 802 1881"
-            className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20"
+            aria-invalid={Boolean(errors.phone)}
+            aria-describedby={errors.phone ? "phone-error" : undefined}
+            {...register("phone", {
+              onChange: (event) => {
+                const sanitized = sanitizePhone(event.target.value);
+                if (sanitized !== event.target.value) {
+                  setValue("phone", sanitized, {
+                    shouldValidate: true,
+                  });
+                }
+              },
+            })}
+            className={`${inputClassName} ${errors.phone ? invalidInputClassName : ""}`}
           />
+
+          {errors.phone && (
+            <p id="phone-error" className="mt-1 text-xs text-red-600">
+              {errors.phone.message}
+            </p>
+          )}
         </div>
 
         <div>
@@ -231,13 +319,12 @@ export default function SignUp() {
             <input
               id="password"
               type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               autoComplete="new-password"
-              minLength={8}
-              required
               placeholder="At least 8 characters"
-              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 pr-12 text-sm outline-none focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20"
+              aria-invalid={Boolean(errors.password)}
+              aria-describedby={errors.password ? "password-error" : undefined}
+              {...register("password")}
+              className={`${inputClassName} pr-12 ${errors.password ? invalidInputClassName : ""}`}
             />
 
             <button
@@ -249,6 +336,12 @@ export default function SignUp() {
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
+
+          {errors.password && (
+            <p id="password-error" className="mt-1 text-xs text-red-600">
+              {errors.password.message}
+            </p>
+          )}
         </div>
 
         <div>
@@ -263,13 +356,14 @@ export default function SignUp() {
             <input
               id="confirmPassword"
               type={showConfirmPassword ? "text" : "password"}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
               autoComplete="new-password"
-              minLength={8}
-              required
               placeholder="Repeat your password"
-              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 pr-12 text-sm outline-none focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20"
+              aria-invalid={Boolean(errors.confirmPassword)}
+              aria-describedby={
+                errors.confirmPassword ? "confirmPassword-error" : undefined
+              }
+              {...register("confirmPassword")}
+              className={`${inputClassName} pr-12 ${errors.confirmPassword ? invalidInputClassName : ""}`}
             />
 
             <button
@@ -283,6 +377,12 @@ export default function SignUp() {
               {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
+
+          {errors.confirmPassword && (
+            <p id="confirmPassword-error" className="mt-1 text-xs text-red-600">
+              {errors.confirmPassword.message}
+            </p>
+          )}
         </div>
 
         <div className="rounded-xl bg-[#07152F]/5 px-4 py-3 text-xs leading-5 text-gray-600">
@@ -292,11 +392,11 @@ export default function SignUp() {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={isSubmitting}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#07152F] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#0d234d] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading && <Loader2 size={18} className="animate-spin" />}
-          {loading ? "Creating account..." : "Create account"}
+          {isSubmitting && <Loader2 size={18} className="animate-spin" />}
+          {isSubmitting ? "Creating account..." : "Create account"}
         </button>
       </form>
 

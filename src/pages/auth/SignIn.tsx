@@ -1,5 +1,13 @@
-import { type FormEvent, useState } from "react";
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  useForm,
+  type SubmitErrorHandler,
+  type SubmitHandler,
+} from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "react-toastify";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
@@ -8,6 +16,19 @@ type SignInLocationState = {
 };
 
 type AccountRole = "member" | "admin" | "super_admin";
+
+const signInSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(1, "Please enter your email address.")
+    .email("Please enter a valid email address.")
+    .max(254, "Email address is too long."),
+  password: z.string().min(1, "Please enter your password."),
+});
+
+type SignInFormValues = z.infer<typeof signInSchema>;
 
 function getSafeDestination(from: string | undefined, role: AccountRole) {
   const isAdmin = role === "admin" || role === "super_admin";
@@ -34,44 +55,53 @@ export default function SignIn() {
 
   const state = location.state as SignInLocationState | null;
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError("");
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<SignInFormValues>({
+    resolver: zodResolver(signInSchema),
+    mode: "onTouched",
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
-    const cleanEmail = email.trim().toLowerCase();
+  const inputClassName =
+    "w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20";
 
-    if (!cleanEmail) {
-      setError("Please enter your email address.");
-      return;
+  const invalidInputClassName =
+    "border-red-400 focus:border-red-500 focus:ring-red-200";
+
+  const onInvalid: SubmitErrorHandler<SignInFormValues> = (formErrors) => {
+    const firstError = Object.values(formErrors)[0]?.message;
+
+    if (typeof firstError === "string") {
+      toast.error(firstError);
     }
+  };
 
-    if (!password) {
-      setError("Please enter your password.");
-      return;
-    }
-
+  const onSubmit: SubmitHandler<SignInFormValues> = async (values) => {
     try {
-      setLoading(true);
+      const cleanEmail = values.email.trim().toLowerCase();
 
       const { data, error: signInError } =
         await supabase.auth.signInWithPassword({
           email: cleanEmail,
-          password,
+          password: values.password,
         });
 
       if (signInError) {
-        setError("Incorrect email or password.");
+        // Keep this generic to avoid revealing whether an email is registered.
+        toast.error("Incorrect email or password.");
         return;
       }
 
       if (!data.user) {
-        setError("We couldn't complete your sign in. Please try again.");
+        toast.error("We couldn't complete your sign in. Please try again.");
         return;
       }
 
@@ -90,8 +120,8 @@ export default function SignIn() {
 
         await supabase.auth.signOut();
 
-        setError(
-          "We signed you in but couldn't verify your account permissions. Please try again, and contact the church administrator if the problem continues.",
+        toast.error(
+          "We couldn't verify your account permissions. Please try again or contact the church administrator.",
         );
         return;
       }
@@ -101,21 +131,24 @@ export default function SignIn() {
       if (!["member", "admin", "super_admin"].includes(role)) {
         await supabase.auth.signOut();
 
-        setError(
+        toast.error(
           "Your account has an unrecognized role. Please contact the church administrator.",
         );
         return;
       }
 
       const destination = getSafeDestination(state?.from, role);
+
+      toast.success("Signed in successfully.");
+
       navigate(destination, { replace: true });
-    } catch (err) {
-      console.error(err);
-      setError("Something went wrong while signing you in. Please try again.");
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error("Sign-in error:", error);
+      toast.error(
+        "Something went wrong while signing you in. Please try again.",
+      );
     }
-  }
+  };
 
   return (
     <div>
@@ -133,16 +166,11 @@ export default function SignIn() {
         </p>
       </div>
 
-      {error && (
-        <div
-          role="alert"
-          className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700"
-        >
-          {error}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form
+        onSubmit={handleSubmit(onSubmit, onInvalid)}
+        className="space-y-5"
+        noValidate
+      >
         <div>
           <label
             htmlFor="email"
@@ -154,14 +182,20 @@ export default function SignIn() {
           <input
             id="email"
             type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
             autoComplete="email"
             maxLength={254}
-            required
             placeholder="you@example.com"
-            className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20"
+            aria-invalid={Boolean(errors.email)}
+            aria-describedby={errors.email ? "email-error" : undefined}
+            {...register("email")}
+            className={`${inputClassName} ${errors.email ? invalidInputClassName : ""}`}
           />
+
+          {errors.email && (
+            <p id="email-error" className="mt-1 text-xs text-red-600">
+              {errors.email.message}
+            </p>
+          )}
         </div>
 
         <div>
@@ -185,12 +219,12 @@ export default function SignIn() {
             <input
               id="password"
               type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
               autoComplete="current-password"
-              required
-              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 pr-12 text-sm outline-none transition focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20"
               placeholder="Enter your password"
+              aria-invalid={Boolean(errors.password)}
+              aria-describedby={errors.password ? "password-error" : undefined}
+              {...register("password")}
+              className={`${inputClassName} pr-12 ${errors.password ? invalidInputClassName : ""}`}
             />
 
             <button
@@ -202,15 +236,21 @@ export default function SignIn() {
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
+
+          {errors.password && (
+            <p id="password-error" className="mt-1 text-xs text-red-600">
+              {errors.password.message}
+            </p>
+          )}
         </div>
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={isSubmitting}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#07152F] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#0d234d] disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading && <Loader2 size={18} className="animate-spin" />}
-          {loading ? "Signing in..." : "Sign in"}
+          {isSubmitting && <Loader2 size={18} className="animate-spin" />}
+          {isSubmitting ? "Signing in..." : "Sign in"}
         </button>
       </form>
 

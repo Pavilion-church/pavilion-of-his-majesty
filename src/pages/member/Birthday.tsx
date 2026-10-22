@@ -47,7 +47,7 @@ function countDigits(value: string) {
 }
 
 export default function Birthday() {
-  const { profile, user } = useAuth();
+  const { user, profile, isApprovedMember } = useAuth();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -264,6 +264,13 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 
   if (!user) {
     setError("Your session could not be found. Please sign in again.");
+    return;
+  }
+
+  if (!isApprovedMember) {
+    setError(
+      "Your church membership must be approved before you can submit birthday information.",
+    );
     return;
   }
 

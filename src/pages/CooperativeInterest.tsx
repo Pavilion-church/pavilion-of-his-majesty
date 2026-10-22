@@ -1,47 +1,80 @@
-import { type FormEvent, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { toast } from "react-toastify";
 import { ArrowLeft, CheckCircle2, LoaderCircle } from "lucide-react";
+
 import { supabase } from "../lib/supabase";
+
+const nameSchema = z
+  .string()
+  .trim()
+  .min(1, "This field is required.")
+  .max(80, "Name cannot exceed 80 characters.")
+  .regex(
+    /^[\p{L}][\p{L}\s'-]*$/u,
+    "Use letters, spaces, hyphens or apostrophes.",
+  );
+
+const cooperativeInterestSchema = z.object({
+  firstName: nameSchema,
+  lastName: nameSchema,
+
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(1, "Please enter your email address.")
+    .email("Please enter a valid email address.")
+    .max(254, "Email address is too long."),
+
+  phone: z
+    .string()
+    .trim()
+    .min(1, "Please enter your phone number.")
+    .max(24, "Phone number is too long.")
+    .refine(
+      (value) =>
+        /^\+?[0-9\s()-]+$/.test(value) &&
+        (value.match(/\d/g) ?? []).length >= 7 &&
+        (value.match(/\d/g) ?? []).length <= 15,
+      "Enter a valid phone number with 7–15 digits.",
+    ),
+
+  message: z.string().max(1000, "Message cannot exceed 1,000 characters."),
+});
+
+type CooperativeInterestFormValues = z.infer<typeof cooperativeInterestSchema>;
 
 export default function CooperativeInterest() {
   const [submitted, setSubmitted] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError("");
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<CooperativeInterestFormValues>({
+    resolver: zodResolver(cooperativeInterestSchema),
+    mode: "onTouched",
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      message: "",
+    },
+  });
 
-    const form = event.currentTarget;
-    const formData = new FormData(form);
-
-    const firstName = String(formData.get("firstName") ?? "").trim();
-    const lastName = String(formData.get("lastName") ?? "").trim();
-    const email = String(formData.get("email") ?? "").trim();
-    const phone = String(formData.get("phone") ?? "").trim();
-    const message = String(formData.get("message") ?? "").trim();
-
-    const namePattern = /^[\p{L}][\p{L}\s'-]*$/u;
-    const phonePattern = /^\+?[\d\s()-]{7,20}$/;
-
-    if (!namePattern.test(firstName) || !namePattern.test(lastName)) {
-      setError("Please enter valid names using letters, spaces, hyphens or apostrophes.");
-      return;
-    }
-
-    if (!phonePattern.test(phone) || phone.replace(/\D/g, "").length < 7) {
-      setError("Please enter a valid phone number.");
-      return;
-    }
-
-    setSubmitting(true);
-
+  const onSubmit = async (values: CooperativeInterestFormValues) => {
     try {
       const { data: authData, error: authError } =
         await supabase.auth.getUser();
 
       if (authError || !authData.user) {
-        setError("Please sign in before submitting your interest.");
+        toast.error("Please sign in before submitting your interest.");
         return;
       }
 
@@ -49,33 +82,53 @@ export default function CooperativeInterest() {
         .from("cooperative_interest")
         .insert({
           user_id: authData.user.id,
-          first_name: firstName,
-          last_name: lastName,
-          email,
-          phone,
-          message: message || null,
+          first_name: values.firstName.trim().replace(/\s+/g, " "),
+          last_name: values.lastName.trim().replace(/\s+/g, " "),
+          email: values.email.trim().toLowerCase(),
+          phone: values.phone.trim(),
+          message: values.message.trim() || null,
         });
 
       if (insertError) {
         if (insertError.code === "23505") {
-          setError(
+          toast.info(
             "You have already registered your interest in the cooperative.",
           );
           return;
         }
 
-        throw insertError;
+        console.error("Cooperative interest submission failed:", insertError);
+
+        toast.error(
+          "We couldn't submit your interest right now. Please try again.",
+        );
+        return;
       }
 
+      reset();
       setSubmitted(true);
-      form.reset();
+      toast.success("Your cooperative interest has been submitted.");
     } catch (err) {
       console.error("Cooperative interest submission failed:", err);
-      setError("We couldn't submit your interest right now. Please try again.");
-    } finally {
-      setSubmitting(false);
+
+      toast.error(
+        "Something went wrong. Please try submitting your interest again.",
+      );
     }
   };
+
+  const onInvalid = () => {
+    toast.error("Please correct the highlighted fields before submitting.");
+  };
+
+  const inputClass = (hasError: boolean) =>
+    `mt-2 w-full rounded-lg border bg-white px-4 py-3 outline-none transition focus:ring-2 focus:ring-[#d6b45a]/20 ${
+      hasError
+        ? "border-red-400 focus:border-red-400"
+        : "border-[#111827]/15 focus:border-[#d6b45a]"
+    }`;
+
+  const errorClass = "mt-1.5 text-xs leading-5 text-red-600";
 
   if (submitted) {
     return (
@@ -97,7 +150,7 @@ export default function CooperativeInterest() {
 
           <Link
             to="/cooperative"
-            className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#07152f] px-6 py-3 text-sm font-semibold text-white"
+            className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#07152f] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#102653]"
           >
             <ArrowLeft size={17} />
             Back to Cooperative
@@ -113,7 +166,7 @@ export default function CooperativeInterest() {
         <div className="mb-10">
           <Link
             to="/cooperative"
-            className="inline-flex items-center gap-2 text-sm font-medium text-[#07152f] hover:text-[#a68f64]"
+            className="inline-flex items-center gap-2 text-sm font-medium text-[#07152f] transition hover:text-[#a68f64]"
           >
             <ArrowLeft size={16} />
             Back to Cooperative
@@ -134,7 +187,8 @@ export default function CooperativeInterest() {
         </div>
 
         <form
-          onSubmit={handleSubmit}
+          onSubmit={handleSubmit(onSubmit, onInvalid)}
+          noValidate
           className="rounded-2xl border border-[#07152f]/10 bg-white p-6 shadow-sm sm:p-8"
         >
           <div className="grid gap-6 sm:grid-cols-2">
@@ -145,22 +199,25 @@ export default function CooperativeInterest() {
               >
                 First Name
               </label>
+
               <input
                 id="firstName"
-                name="firstName"
                 type="text"
-                required
-                maxLength={80}
-                pattern="[\p{L}][\p{L}\s'-]*"
-                title="Use letters, spaces, apostrophes or hyphens."
-                onChange={(event) => {
-                  event.currentTarget.value = event.currentTarget.value
-                    .replace(/[^\p{L}\s'-]/gu, "")
-                    .slice(0, 80);
-                }}
                 autoComplete="given-name"
-                className="mt-2 w-full rounded-lg border border-[#111827]/15 bg-white px-4 py-3 outline-none transition focus:border-[#d6b45a]"
+                maxLength={80}
+                aria-invalid={Boolean(errors.firstName)}
+                aria-describedby={
+                  errors.firstName ? "firstName-error" : undefined
+                }
+                {...register("firstName")}
+                className={inputClass(Boolean(errors.firstName))}
               />
+
+              {errors.firstName && (
+                <p id="firstName-error" className={errorClass}>
+                  {errors.firstName.message}
+                </p>
+              )}
             </div>
 
             <div>
@@ -170,22 +227,25 @@ export default function CooperativeInterest() {
               >
                 Last Name
               </label>
+
               <input
                 id="lastName"
-                name="lastName"
                 type="text"
-                required
-                maxLength={80}
-                pattern="[\p{L}][\p{L}\s'-]*"
-                title="Use letters, spaces, apostrophes or hyphens."
-                onChange={(event) => {
-                  event.currentTarget.value = event.currentTarget.value
-                    .replace(/[^\p{L}\s'-]/gu, "")
-                    .slice(0, 80);
-                }}
                 autoComplete="family-name"
-                className="mt-2 w-full rounded-lg border border-[#111827]/15 bg-white px-4 py-3 outline-none transition focus:border-[#d6b45a]"
+                maxLength={80}
+                aria-invalid={Boolean(errors.lastName)}
+                aria-describedby={
+                  errors.lastName ? "lastName-error" : undefined
+                }
+                {...register("lastName")}
+                className={inputClass(Boolean(errors.lastName))}
               />
+
+              {errors.lastName && (
+                <p id="lastName-error" className={errorClass}>
+                  {errors.lastName.message}
+                </p>
+              )}
             </div>
 
             <div>
@@ -195,15 +255,23 @@ export default function CooperativeInterest() {
               >
                 Email Address
               </label>
+
               <input
                 id="email"
-                name="email"
                 type="email"
-                required
-                maxLength={254}
                 autoComplete="email"
-                className="mt-2 w-full rounded-lg border border-[#111827]/15 bg-white px-4 py-3 outline-none transition focus:border-[#d6b45a]"
+                maxLength={254}
+                aria-invalid={Boolean(errors.email)}
+                aria-describedby={errors.email ? "email-error" : undefined}
+                {...register("email")}
+                className={inputClass(Boolean(errors.email))}
               />
+
+              {errors.email && (
+                <p id="email-error" className={errorClass}>
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
             <div>
@@ -213,27 +281,24 @@ export default function CooperativeInterest() {
               >
                 Phone Number
               </label>
+
               <input
                 id="phone"
-                name="phone"
                 type="tel"
-                required
-                maxLength={24}
                 autoComplete="tel"
                 inputMode="tel"
-                pattern="\+?[0-9 ()-]{7,24}"
-                title="Enter a valid phone number using 7–15 digits."
-                onChange={(event) => {
-                  const input = event.currentTarget;
-                  const cleaned = input.value.replace(/[^0-9+ ()-]/g, "");
-                  input.value = (
-                    cleaned.startsWith("+")
-                      ? "+" + cleaned.slice(1).replace(/\+/g, "")
-                      : cleaned.replace(/\+/g, "")
-                  ).slice(0, 24);
-                }}
-                className="mt-2 w-full rounded-lg border border-[#111827]/15 bg-white px-4 py-3 outline-none transition focus:border-[#d6b45a]"
+                maxLength={24}
+                aria-invalid={Boolean(errors.phone)}
+                aria-describedby={errors.phone ? "phone-error" : undefined}
+                {...register("phone")}
+                className={inputClass(Boolean(errors.phone))}
               />
+
+              {errors.phone && (
+                <p id="phone-error" className={errorClass}>
+                  {errors.phone.message}
+                </p>
+              )}
             </div>
           </div>
 
@@ -244,32 +309,38 @@ export default function CooperativeInterest() {
             >
               Message <span className="text-[#6b7280]">(Optional)</span>
             </label>
+
             <textarea
               id="message"
-              name="message"
               rows={5}
               maxLength={1000}
               placeholder="Is there anything you would like us to know?"
-              className="mt-2 w-full resize-none rounded-lg border border-[#111827]/15 bg-white px-4 py-3 outline-none transition focus:border-[#d6b45a]"
+              aria-invalid={Boolean(errors.message)}
+              aria-describedby={errors.message ? "message-error" : undefined}
+              {...register("message")}
+              className={`${inputClass(Boolean(errors.message))} resize-none`}
             />
-          </div>
 
-          {error && (
-            <p
-              role="alert"
-              className="mt-5 rounded-lg bg-red-50 p-3 text-sm text-red-700"
-            >
-              {error}
-            </p>
-          )}
+            {errors.message && (
+              <p id="message-error" className={errorClass}>
+                {errors.message.message}
+              </p>
+            )}
+          </div>
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={isSubmitting}
             className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#07152f] px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-[#102653] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {submitting && <LoaderCircle size={18} className="animate-spin" />}
-            {submitting ? "Submitting..." : "Submit Interest"}
+            {isSubmitting ? (
+              <>
+                <LoaderCircle size={18} className="animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              "Submit Interest"
+            )}
           </button>
         </form>
       </div>

@@ -1,63 +1,122 @@
-import { type FormEvent, useState } from "react";
-import { Mail, MapPin, Phone, Send } from "lucide-react";
+import { useState } from "react";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { toast } from "react-toastify";
+import { Mail, MapPin, Phone, Send, Loader2 } from "lucide-react";
+
 import { churchInfo } from "../assets/data";
 import { supabase } from "../lib/supabase";
 
+const contactSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "Please enter your name.")
+    .max(100, "Name cannot exceed 100 characters.")
+    .regex(
+      /^[\p{L}][\p{L}\s'-]*$/u,
+      "Use letters, spaces, hyphens or apostrophes.",
+    ),
+
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(1, "Please enter your email address.")
+    .email("Please enter a valid email address.")
+    .max(254, "Email address is too long."),
+
+  phone: z
+    .string()
+    .trim()
+    .refine(
+      (value) =>
+        value === "" ||
+        (/^\+?[0-9\s()-]+$/.test(value) &&
+          (value.match(/\d/g) ?? []).length >= 7 &&
+          (value.match(/\d/g) ?? []).length <= 15),
+      "Enter a valid phone number with 7–15 digits.",
+    ),
+
+  subject: z
+    .string()
+    .trim()
+    .min(1, "Please enter a subject.")
+    .max(180, "Subject cannot exceed 180 characters."),
+
+  message: z
+    .string()
+    .trim()
+    .min(1, "Please enter your message.")
+    .max(5000, "Message cannot exceed 5,000 characters."),
+});
+
+type ContactFormValues = z.infer<typeof contactSchema>;
+
 export default function Contact() {
   const [submitted, setSubmitted] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError("");
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ContactFormValues>({
+    resolver: zodResolver(contactSchema),
+    mode: "onTouched",
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      subject: "",
+      message: "",
+    },
+  });
 
-    const form = event.currentTarget;
-    const formData = new FormData(form);
-    const name = String(formData.get("name") ?? "").trim().replace(/\s+/g, " ");
-    const email = String(formData.get("email") ?? "").trim().toLowerCase();
-    const phone = String(formData.get("phone") ?? "").trim();
-    const subject = String(formData.get("subject") ?? "").trim();
-    const message = String(formData.get("message") ?? "").trim();
-    const namePattern = /^[\p{L}][\p{L}\s'-]*$/u;
-    const phoneDigits = phone.replace(/\D/g, "");
-
-    if (!namePattern.test(name) || name.length > 100) {
-      setError("Please enter a valid name using letters, spaces, hyphens or apostrophes.");
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
-      setError("Please enter a valid email address.");
-      return;
-    }
-    if (phone && (!/^\+?[\d\s()-]+$/.test(phone) || phoneDigits.length < 7 || phoneDigits.length > 15)) {
-      setError("Please enter a valid phone number (7–15 digits).");
-      return;
-    }
-    if (!subject || subject.length > 180 || !message || message.length > 5000) {
-      setError("Please provide a subject and message within the allowed length.");
-      return;
-    }
-
-    setSubmitting(true);
+  const onSubmit = async (values: ContactFormValues) => {
     try {
-      const { error: insertError } = await supabase.from("contact_submissions").insert({
-        name,
-        email,
-        phone: phone || null,
-        subject,
-        message,
-      });
-      if (insertError) throw insertError;
-      form.reset();
+      const { error: insertError } = await supabase
+        .from("contact_submissions")
+        .insert({
+          name: values.name.trim().replace(/\s+/g, " "),
+          email: values.email.trim().toLowerCase(),
+          phone: values.phone.trim() || null,
+          subject: values.subject.trim(),
+          message: values.message.trim(),
+        });
+
+      if (insertError) {
+        console.error("Contact form submission failed:", insertError);
+        toast.error(
+          "We couldn't send your message right now. Please try again or contact us directly by email.",
+        );
+        return;
+      }
+
+      reset();
       setSubmitted(true);
+      toast.success("Your message has been sent successfully.");
     } catch (submissionError) {
       console.error("Contact form submission failed:", submissionError);
-      setError("We couldn't send your message right now. Please try again or contact us directly by email.");
-    } finally {
-      setSubmitting(false);
+      toast.error(
+        "Something went wrong. Please try again or contact us directly by email.",
+      );
     }
   };
+
+  const onInvalid = () => {
+    toast.error("Please correct the highlighted fields before submitting.");
+  };
+
+  const inputClass = (hasError: boolean) =>
+    `mt-2 w-full rounded-lg border bg-white px-4 py-3 outline-none transition focus:ring-2 focus:ring-[#d6b45a]/20 ${
+      hasError
+        ? "border-red-400 focus:border-red-400"
+        : "border-[#111827]/15 focus:border-[#d6b45a]"
+    }`;
+
+  const errorClass = "mt-1.5 text-xs leading-5 text-red-600";
 
   return (
     <div>
@@ -75,8 +134,8 @@ export default function Contact() {
             </h1>
 
             <p className="mt-6 max-w-2xl text-base leading-8 text-white/70 sm:text-lg">
-              Whether you have a question, need more information or simply want
-              to connect with us, we are happy to hear from you.
+              Whether you have a question, need more information or simply
+              want to connect with us, we are happy to hear from you.
             </p>
           </div>
         </div>
@@ -168,8 +227,8 @@ export default function Contact() {
 
             <div className="mt-10 border-l-2 border-[#d6b45a] pl-5">
               <p className="text-sm leading-7 text-[#6b7280]">
-                You can also reach us directly through the phone number or email
-                above.
+                You can also reach us directly through the phone number or
+                email above.
               </p>
             </div>
           </div>
@@ -186,8 +245,8 @@ export default function Contact() {
                 </h3>
 
                 <p className="mt-3 leading-7 text-[#4b5563]">
-                  Thank you for contacting The Pavilion of His Majesty. We will
-                  get back to you as soon as possible.
+                  Thank you for contacting The Pavilion of His Majesty. We
+                  will get back to you as soon as possible.
                 </p>
 
                 <button
@@ -200,7 +259,8 @@ export default function Contact() {
               </div>
             ) : (
               <form
-                onSubmit={handleSubmit}
+                onSubmit={handleSubmit(onSubmit, onInvalid)}
+                noValidate
                 className="rounded-2xl border border-[#07152f]/10 bg-[#f8f6f1] p-6 sm:p-8"
               >
                 <div className="grid gap-6 sm:grid-cols-2">
@@ -214,18 +274,20 @@ export default function Contact() {
 
                     <input
                       id="name"
-                      name="name"
                       type="text"
                       autoComplete="name"
                       maxLength={100}
-                      pattern="[\p{L}][\p{L}\s'-]*"
-                      title="Use letters, spaces, hyphens or apostrophes."
-                      onChange={(event) => {
-                        event.currentTarget.value = event.currentTarget.value.replace(/[^\p{L}\s'-]/gu, "");
-                      }}
-                      required
-                      className="mt-2 w-full rounded-lg border border-[#111827]/15 bg-white px-4 py-3 outline-none transition focus:border-[#d6b45a]"
+                      aria-invalid={Boolean(errors.name)}
+                      aria-describedby={errors.name ? "name-error" : undefined}
+                      {...register("name")}
+                      className={inputClass(Boolean(errors.name))}
                     />
+
+                    {errors.name && (
+                      <p id="name-error" className={errorClass}>
+                        {errors.name.message}
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -238,13 +300,22 @@ export default function Contact() {
 
                     <input
                       id="email"
-                      name="email"
                       type="email"
                       autoComplete="email"
                       maxLength={254}
-                      required
-                      className="mt-2 w-full rounded-lg border border-[#111827]/15 bg-white px-4 py-3 outline-none transition focus:border-[#d6b45a]"
+                      aria-invalid={Boolean(errors.email)}
+                      aria-describedby={
+                        errors.email ? "email-error" : undefined
+                      }
+                      {...register("email")}
+                      className={inputClass(Boolean(errors.email))}
                     />
+
+                    {errors.email && (
+                      <p id="email-error" className={errorClass}>
+                        {errors.email.message}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -253,25 +324,26 @@ export default function Contact() {
                     htmlFor="phone"
                     className="text-sm font-medium text-[#111827]"
                   >
-                    Phone Number
+                    Phone Number <span className="text-gray-500">(optional)</span>
                   </label>
 
                   <input
                     id="phone"
-                    name="phone"
                     type="tel"
                     autoComplete="tel"
                     inputMode="tel"
                     maxLength={24}
-                    pattern="\+?[0-9 ()-]{7,24}"
-                    title="Use 7–15 digits, optionally with a leading +, spaces, brackets or hyphens."
-                    onChange={(event) => {
-                      const input = event.currentTarget;
-                      const cleaned = input.value.replace(/[^0-9+ ()-]/g, "");
-                      input.value = cleaned.startsWith("+") ? "+" + cleaned.slice(1).replace(/\+/g, "") : cleaned.replace(/\+/g, "");
-                    }}
-                    className="mt-2 w-full rounded-lg border border-[#111827]/15 bg-white px-4 py-3 outline-none transition focus:border-[#d6b45a]"
+                    aria-invalid={Boolean(errors.phone)}
+                    aria-describedby={errors.phone ? "phone-error" : undefined}
+                    {...register("phone")}
+                    className={inputClass(Boolean(errors.phone))}
                   />
+
+                  {errors.phone && (
+                    <p id="phone-error" className={errorClass}>
+                      {errors.phone.message}
+                    </p>
+                  )}
                 </div>
 
                 <div className="mt-6">
@@ -284,11 +356,21 @@ export default function Contact() {
 
                   <input
                     id="subject"
-                    name="subject"
                     type="text"
-                    required
-                    className="mt-2 w-full rounded-lg border border-[#111827]/15 bg-white px-4 py-3 outline-none transition focus:border-[#d6b45a]"
+                    maxLength={180}
+                    aria-invalid={Boolean(errors.subject)}
+                    aria-describedby={
+                      errors.subject ? "subject-error" : undefined
+                    }
+                    {...register("subject")}
+                    className={inputClass(Boolean(errors.subject))}
                   />
+
+                  {errors.subject && (
+                    <p id="subject-error" className={errorClass}>
+                      {errors.subject.message}
+                    </p>
+                  )}
                 </div>
 
                 <div className="mt-6">
@@ -301,27 +383,39 @@ export default function Contact() {
 
                   <textarea
                     id="message"
-                    name="message"
                     rows={6}
                     maxLength={5000}
-                    required
-                    className="mt-2 w-full resize-none rounded-lg border border-[#111827]/15 bg-white px-4 py-3 outline-none transition focus:border-[#d6b45a]"
+                    aria-invalid={Boolean(errors.message)}
+                    aria-describedby={
+                      errors.message ? "message-error" : undefined
+                    }
+                    {...register("message")}
+                    className={`${inputClass(Boolean(errors.message))} resize-none`}
                   />
-                </div>
 
-                {error && (
-                  <p role="alert" className="mt-5 rounded-lg bg-red-50 p-3 text-sm text-red-700">
-                    {error}
-                  </p>
-                )}
+                  {errors.message && (
+                    <p id="message-error" className={errorClass}>
+                      {errors.message.message}
+                    </p>
+                  )}
+                </div>
 
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={isSubmitting}
                   className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#07152f] px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-[#102653] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {submitting ? "Sending..." : "Send Message"}
-                  <Send size={17} />
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 size={17} className="animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      Send Message
+                      <Send size={17} />
+                    </>
+                  )}
                 </button>
               </form>
             )}
@@ -337,8 +431,8 @@ export default function Contact() {
           </h2>
 
           <p className="mt-5 leading-8 text-white/65">
-            Come worship with us, connect with the church family and be part of
-            what God is doing at The Pavilion of His Majesty.
+            Come worship with us, connect with the church family and be part
+            of what God is doing at The Pavilion of His Majesty.
           </p>
         </div>
       </section>

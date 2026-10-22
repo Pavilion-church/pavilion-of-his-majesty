@@ -206,10 +206,10 @@ export const churchJourney = [
 ];
 
 export const churchLeadership = {
-  pastor: "Pastor Dr Ayodele Okegbade",
+  pastor: "Pastor Ayodele Okegbade",
   role: "Pastor in charge",
   introduction:
-    "The parish is currently overseen by Pastor Dr Ayodele Okegbade, who provides pastoral leadership as the church continues its work of worship, spiritual growth and service.",
+    "The parish is currently overseen by Pastor Ayodele Okegbade, who provides pastoral leadership as the church continues its work of worship, spiritual growth and service.",
 };
 
 export const churchValues = [

@@ -58,20 +58,21 @@ export default function Navbar() {
         <Link
           to="/"
           onClick={closeMobileMenu}
-          className="flex shrink-0 items-center gap-3"
+          className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2.5"
         >
           <img
             src={logo}
-            alt="The Pavilion of His Majesty"
-            className="h-14 w-14 object-contain"
+            alt="The Pavilion of His Majesty — The Redeemed Christian Church of God"
+            className="h-11 w-11 shrink-0 object-contain sm:h-14 sm:w-14"
+            decoding="async"
           />
 
-          <div className="hidden sm:block">
-            <p className="font-serif text-sm font-semibold tracking-wide text-white">
+          <div className="min-w-0 leading-tight">
+            <p className="whitespace-nowrap font-serif text-[11px] font-semibold tracking-wide text-white sm:text-xs lg:text-sm">
               The Pavilion
             </p>
 
-            <p className="text-xs tracking-[0.18em] text-[#d6b45a]">
+            <p className="whitespace-nowrap text-[8px] font-medium tracking-[0.08em] text-[#d6b45a] sm:text-[9px] sm:tracking-[0.12em] lg:text-[10px]">
               OF HIS MAJESTY
             </p>
           </div>

@@ -8,6 +8,7 @@ import {
   Search,
   X,
 } from "lucide-react";
+import { toast } from "react-toastify";
 
 import { supabase } from "../../lib/supabase";
 
@@ -55,7 +56,6 @@ export default function AdminMessages() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
 
   const loadMessages = useCallback(async () => {
     setLoading(true);
@@ -112,39 +112,44 @@ export default function AdminMessages() {
   async function updateStatus(record: ContactMessage, status: MessageStatus) {
     setBusyId(record.id);
     setError("");
-    setNotice("");
 
-    const { error: updateError } = await supabase
-      .from("contact_submissions")
-      .update({ status })
-      .eq("id", record.id);
+    try {
+      const { error: updateError } = await supabase
+        .from("contact_submissions")
+        .update({ status })
+        .eq("id", record.id)
+        .select("id")
+        .single();
 
-    if (updateError) {
-      console.error("Unable to update contact message:", updateError);
-      setError("We couldn't update this message. Please try again.");
+      if (updateError) {
+        console.error("Unable to update contact message:", updateError);
+        toast.error("We couldn't update this message. Please try again.");
+        return;
+      }
+
+      setMessages((current) =>
+        current.map((item) =>
+          item.id === record.id ? { ...item, status } : item,
+        ),
+      );
+
+      setSelectedMessage((current) =>
+        current?.id === record.id ? { ...current, status } : current,
+      );
+
+      toast.success(
+        status === "resolved"
+          ? "Message marked as resolved."
+          : status === "read"
+            ? "Message marked as read."
+            : "Message marked as new.",
+      );
+    } catch (err) {
+      console.error("Unexpected contact message update error:", err);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
       setBusyId(null);
-      return;
     }
-
-    setMessages((current) =>
-      current.map((item) =>
-        item.id === record.id ? { ...item, status } : item,
-      ),
-    );
-
-    setSelectedMessage((current) =>
-      current?.id === record.id ? { ...current, status } : current,
-    );
-
-    setNotice(
-      status === "resolved"
-        ? "Message marked as resolved."
-        : status === "read"
-          ? "Message marked as read."
-          : "Message marked as new.",
-    );
-
-    setBusyId(null);
   }
 
   function openMessage(record: ContactMessage) {
@@ -190,15 +195,6 @@ export default function AdminMessages() {
           className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700"
         >
           {error}
-        </div>
-      )}
-
-      {notice && (
-        <div
-          role="status"
-          className="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm leading-6 text-green-800"
-        >
-          {notice}
         </div>
       )}
 
@@ -298,7 +294,7 @@ export default function AdminMessages() {
                   key={record.id}
                   type="button"
                   onClick={() => openMessage(record)}
-                  className="block w-full p-4 text-left transition hover:bg-[#F8F6F1]/70 sm:p-6"
+                  className="group block w-full cursor-pointer p-4 text-left transition-colors hover:bg-[#F8F6F1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#D6B45A] sm:p-6"
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 flex-1">
@@ -433,7 +429,7 @@ export default function AdminMessages() {
               <div className="flex flex-wrap gap-3">
                 <a
                   href={`mailto:${selectedMessage.email}?subject=${encodeURIComponent(`Re: ${selectedMessage.subject}`)}`}
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#07152F] px-4 py-3 text-sm font-semibold text-white hover:bg-[#0d234d]"
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-[#07152F] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#0d234d]"
                 >
                   <Mail size={16} />
                   Reply by email
@@ -446,7 +442,7 @@ export default function AdminMessages() {
                     onClick={() =>
                       void updateStatus(selectedMessage, "resolved")
                     }
-                    className="inline-flex items-center gap-2 rounded-xl border border-green-200 px-4 py-3 text-sm font-semibold text-green-800 hover:bg-green-50 disabled:opacity-50"
+                    className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-green-200 px-4 py-3 text-sm font-semibold text-green-800 transition-colors hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <CheckCheck size={16} />
                     Mark resolved
@@ -458,7 +454,7 @@ export default function AdminMessages() {
                     type="button"
                     disabled={busyId === selectedMessage.id}
                     onClick={() => void updateStatus(selectedMessage, "new")}
-                    className="rounded-xl border border-[#07152F]/15 px-4 py-3 text-sm font-semibold text-[#07152F] hover:bg-[#07152F]/5 disabled:opacity-50"
+                    className="cursor-pointer rounded-xl border border-[#07152F]/15 px-4 py-3 text-sm font-semibold text-[#07152F] transition-colors hover:bg-[#07152F]/5 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Reopen message
                   </button>

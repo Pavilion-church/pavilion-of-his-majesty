@@ -1,34 +1,58 @@
-import { type FormEvent, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  useForm,
+  type SubmitErrorHandler,
+  type SubmitHandler,
+} from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "react-toastify";
 import { ArrowLeft, Loader2, Mail } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
+const forgotPasswordSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(1, "Please enter your email address.")
+    .email("Please enter a valid email address.")
+    .max(254, "Email address is too long."),
+});
+
+type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
+
 export default function ForgotPassword() {
-  const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<ForgotPasswordFormValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    mode: "onTouched",
+    defaultValues: {
+      email: "",
+    },
+  });
 
-    setError("");
+  const onInvalid: SubmitErrorHandler<ForgotPasswordFormValues> = (
+    formErrors,
+  ) => {
+    const firstError = Object.values(formErrors)[0]?.message;
+
+    if (typeof firstError === "string") {
+      toast.error(firstError);
+    }
+  };
+
+  const onSubmit: SubmitHandler<ForgotPasswordFormValues> = async (values) => {
     setSuccess(false);
 
-    const cleanEmail = email.trim().toLowerCase();
-
-    if (!cleanEmail) {
-      setError("Please enter your email address.");
-      return;
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
-      setError("Please enter a valid email address.");
-      return;
-    }
-
     try {
-      setLoading(true);
+      const cleanEmail = values.email.trim().toLowerCase();
 
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(
         cleanEmail,
@@ -38,21 +62,25 @@ export default function ForgotPassword() {
       );
 
       if (resetError) {
-        setError(
+        console.error("Password reset request failed:", resetError);
+        toast.error(
           "We couldn't process that request right now. Please try again.",
         );
         return;
       }
 
       setSuccess(true);
-    } catch (err) {
-      console.error(err);
-
-      setError("Something went wrong. Please try again in a moment.");
-    } finally {
-      setLoading(false);
+      toast.success(
+        "If an account exists for that email, a reset link will be sent.",
+      );
+    } catch (error) {
+      console.error("Password reset error:", error);
+      toast.error("Something went wrong. Please try again in a moment.");
     }
-  }
+  };
+
+  const inputClassName =
+    "w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20";
 
   return (
     <div>
@@ -74,15 +102,6 @@ export default function ForgotPassword() {
           send you a password reset link.
         </p>
       </div>
-
-      {error && (
-        <div
-          role="alert"
-          className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700"
-        >
-          {error}
-        </div>
-      )}
 
       {success ? (
         <div>
@@ -109,7 +128,11 @@ export default function ForgotPassword() {
         </div>
       ) : (
         <>
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form
+            onSubmit={handleSubmit(onSubmit, onInvalid)}
+            className="space-y-5"
+            noValidate
+          >
             <div>
               <label
                 htmlFor="email"
@@ -121,24 +144,33 @@ export default function ForgotPassword() {
               <input
                 id="email"
                 type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
                 autoComplete="email"
                 maxLength={254}
-                required
                 placeholder="you@example.com"
-                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20"
+                aria-invalid={Boolean(errors.email)}
+                aria-describedby={errors.email ? "email-error" : undefined}
+                {...register("email")}
+                className={`${inputClassName} ${
+                  errors.email
+                    ? "border-red-400 focus:border-red-500 focus:ring-red-200"
+                    : ""
+                }`}
               />
+
+              {errors.email && (
+                <p id="email-error" className="mt-1 text-xs text-red-600">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={isSubmitting}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#07152F] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#0d234d] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading && <Loader2 size={18} className="animate-spin" />}
-
-              {loading ? "Sending..." : "Send reset link"}
+              {isSubmitting && <Loader2 size={18} className="animate-spin" />}
+              {isSubmitting ? "Sending..." : "Send reset link"}
             </button>
           </form>
 

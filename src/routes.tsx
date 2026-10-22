@@ -34,7 +34,6 @@ import AdminLayout from "./components/layout/Admin/AdminLayout";
 import AdminBirthdays from "./pages/admin/AdminBirthdays";
 import AdminMessages from "./pages/admin/AdminMessages";
 import AdminEvents from "./pages/admin/AdminEvents";
-import AdminAnnouncements from "./pages/admin/AdminAnnouncements";
 import AdminMembers from "./pages/admin/AdminMembers";
 import AdminCooperative from "./pages/admin/AdminCooperative";
 
@@ -186,10 +185,7 @@ export const router = createBrowserRouter([
             path: "/admin/events",
             element: <AdminEvents />,
           },
-          {
-            path: "/admin/announcements",
-            element: <AdminAnnouncements />,
-          },
+
           {
             path: "/admin/members",
             element: <AdminMembers />,
