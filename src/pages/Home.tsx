@@ -4,37 +4,50 @@ import {
   ArrowRight,
   CalendarDays,
   Clock3,
+  HandCoins,
+  HandHeart,
   HeartHandshake,
   MapPin,
 } from "lucide-react";
 
 import churchBuilding from "../assets/images/church-building.png";
+
 import choirImage from "../assets/images/choir.jpeg";
+
 import worshipImage from "../assets/images/worship-service.jpeg";
+
 import youthImage from "../assets/images/youth-ministry.jpeg";
+
 import evangelismImage from "../assets/images/evangelism.jpeg";
 
 import { churchInfo, weeklyProgrammes } from "../assets/data";
 
 const ministryImages: Record<string, string> = {
   "Youth Ministry": youthImage,
+
   Choir: choirImage,
+
   Evangelism: evangelismImage,
 };
 
 const featuredMinistries = [
   {
     name: "Youth Ministry",
+
     description:
       "A Christ-centred community where young people grow in faith, purpose and service.",
   },
+
   {
     name: "Choir",
+
     description:
       "Leading the church into worship and praise through music and ministry.",
   },
+
   {
     name: "Evangelism",
+
     description:
       "Taking the message of Christ beyond the walls of the church and into our community.",
   },
@@ -43,27 +56,24 @@ const featuredMinistries = [
 export default function Home() {
   return (
     <div className="overflow-hidden">
-      {/* =========================================================
-          HERO
-      ========================================================= */}
       <section className="relative min-h-[calc(100vh-5rem)] overflow-hidden bg-[#07152f]">
-        {/* Background image */}
         <img
           src={churchBuilding}
           alt="The Pavilion of His Majesty church building"
           className="absolute inset-0 h-full w-full object-cover object-center"
         />
 
-        {/* Cinematic overlays */}
         <div className="absolute inset-0 bg-[#07152f]/55" />
+
         <div className="absolute inset-0 bg-linear-to-r from-[#07152f]/95 via-[#07152f]/65 to-[#07152f]/20" />
+
         <div className="absolute inset-0 bg-linear-to-t from-[#07152f] via-transparent to-[#07152f]/30" />
 
-        {/* Hero content */}
         <div className="relative mx-auto flex min-h-[calc(100vh-5rem)] max-w-7xl items-end px-5 pb-16 pt-24 sm:px-8 sm:pb-20 lg:px-10 lg:pb-24">
           <div className="max-w-3xl">
             <div className="mb-6 flex items-center gap-3">
               <span className="h-px w-10 bg-[#d6b45a]" />
+
               <span className="text-xs font-semibold uppercase tracking-[0.28em] text-[#e2bd61] sm:text-sm">
                 The Redeemed Christian Church of God
               </span>
@@ -95,14 +105,42 @@ export default function Home() {
               </a>
             </div>
 
-            {/* Service information */}
+            <div className="mt-6 max-w-xl rounded-2xl border border-white/15 bg-white/5 p-4 backdrop-blur-sm sm:flex sm:items-center sm:justify-between sm:gap-5 sm:px-5">
+              <div>
+                <p className="text-sm font-semibold text-white">
+                  Member Portal
+                </p>
+                <p className="mt-1 text-sm leading-5 text-white/65">
+                  Already a member? Sign in, or create an account to get
+                  started.
+                </p>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-3 sm:mt-0 sm:shrink-0">
+                <Link
+                  to="/sign-in"
+                  className="inline-flex items-center justify-center rounded-full border border-white/25 px-4 py-2.5 text-sm font-semibold text-white transition hover:border-white/50 hover:bg-white/10"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  to="/sign-up"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-[#d6b45a] px-4 py-2.5 text-sm font-semibold text-[#07152f] transition hover:bg-[#e2bd61]"
+                >
+                  Create account
+                  <ArrowRight size={15} />
+                </Link>
+              </div>
+            </div>
+
             <div className="mt-12 flex flex-col gap-5 border-t border-white/15 pt-6 sm:flex-row sm:items-center sm:gap-8">
               <div className="flex items-center gap-3">
                 <CalendarDays size={18} className="text-[#d6b45a]" />
+
                 <div>
                   <p className="text-xs uppercase tracking-[0.18em] text-white/45">
                     Sunday
                   </p>
+
                   <p className="mt-1 text-sm font-medium text-white">
                     8:00 AM – 12:00 PM
                   </p>
@@ -113,10 +151,12 @@ export default function Home() {
 
               <div className="flex items-center gap-3">
                 <MapPin size={18} className="text-[#d6b45a]" />
+
                 <div>
                   <p className="text-xs uppercase tracking-[0.18em] text-white/45">
                     Location
                   </p>
+
                   <p className="mt-1 text-sm font-medium text-white">
                     Akinmoorin, Oyo State
                   </p>
@@ -126,18 +166,15 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Scroll cue */}
         <div className="absolute bottom-7 right-6 hidden flex-col items-center gap-3 text-white/40 lg:flex">
           <span className="text-[10px] uppercase tracking-[0.3em] [writing-mode:vertical-rl]">
             Explore
           </span>
+
           <span className="h-12 w-px bg-white/20" />
         </div>
       </section>
 
-      {/* =========================================================
-          WELCOME
-      ========================================================= */}
       <section className="bg-[#f8f6f1] px-5 py-20 sm:px-8 sm:py-24 lg:px-10 lg:py-32">
         <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:items-center lg:gap-24">
           <div>
@@ -169,9 +206,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* =========================================================
-          THIS WEEK
-      ========================================================= */}
       <section
         id="this-week"
         className="bg-[#07152f] px-5 py-20 sm:px-8 sm:py-24 lg:px-10 lg:py-28"
@@ -214,6 +248,7 @@ export default function Home() {
 
                 <div className="mt-4 flex items-center gap-2 text-sm text-white/55">
                   <Clock3 size={16} />
+
                   {programme.time}
                 </div>
 
@@ -226,11 +261,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* =========================================================
-          ANNIVERSARY
-      ========================================================= */}
       <section className="relative overflow-hidden bg-[#102449] px-5 py-20 sm:px-8 lg:px-10 lg:py-28">
         <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full border border-[#d6b45a]/20" />
+
         <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full border border-[#d6b45a]/10" />
 
         <div className="relative mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1fr_auto] lg:items-center">
@@ -259,9 +292,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* =========================================================
-          MINISTRIES
-      ========================================================= */}
       <section className="bg-[#f8f6f1] px-5 py-20 sm:px-8 sm:py-24 lg:px-10 lg:py-32">
         <div className="mx-auto max-w-7xl">
           <div className="max-w-2xl">
@@ -333,9 +363,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* =========================================================
-          WORSHIP / IMAGE FEATURE
-      ========================================================= */}
       <section className="bg-white px-5 py-20 sm:px-8 lg:px-10 lg:py-28">
         <div className="mx-auto grid max-w-7xl overflow-hidden rounded-3xl bg-[#07152f] lg:grid-cols-2">
           <div className="relative min-h-105 lg:min-h-150">
@@ -377,9 +404,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* =========================================================
-          GET INVOLVED / COOPERATIVE / GIVE
-      ========================================================= */}
       <section className="bg-[#f8f6f1] px-5 py-20 sm:px-8 sm:py-24 lg:px-10 lg:py-28">
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-5 lg:grid-cols-3">
@@ -387,7 +411,7 @@ export default function Home() {
               to="/get-involved"
               className="group rounded-2xl bg-[#07152f] p-8 transition hover:-translate-y-1 sm:p-10"
             >
-              <HeartHandshake className="text-[#d6b45a]" size={28} />
+              <HandHeart className="text-[#d6b45a]" size={28} />
 
               <h3 className="mt-12 font-serif text-3xl font-semibold text-white">
                 Get Involved
@@ -437,7 +461,7 @@ export default function Home() {
               className="group rounded-2xl border border-[#07152f]/10 bg-[#e9dfc7] p-8 transition hover:-translate-y-1 sm:p-10"
             >
               <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#07152f] text-[#d6b45a]">
-                <HeartHandshake size={21} />
+                <HandCoins size={21} />
               </div>
 
               <h3 className="mt-12 font-serif text-3xl font-semibold text-[#07152f]">
@@ -460,9 +484,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* =========================================================
-          VISIT CTA
-      ========================================================= */}
       <section className="bg-[#07152f] px-5 py-20 sm:px-8 lg:px-10 lg:py-24">
         <div className="mx-auto max-w-5xl text-center">
           <MapPin className="mx-auto text-[#d6b45a]" size={30} />

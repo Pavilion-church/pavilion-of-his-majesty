@@ -1,45 +1,75 @@
 import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
+
 import { Cake, CheckCircle2, ImagePlus, Loader2, X } from "lucide-react";
 
+import { toast } from "react-toastify";
+
 import { useAuth } from "../../components/layout/auth/AuthProvider";
+
 import { formatFileSize, prepareBirthdayPhoto } from "../../lib/imageUpload";
+
 import { supabase } from "../../lib/supabase";
 
 const months = [
   "January",
+
   "February",
+
   "March",
+
   "April",
+
   "May",
+
   "June",
+
   "July",
+
   "August",
+
   "September",
+
   "October",
+
   "November",
+
   "December",
 ];
 
 type BirthdaySubmission = {
   id: string;
+
   first_name: string;
+
   last_name: string;
+
   birthday_month: number;
+
   birthday_day: number;
+
   status: "pending" | "approved" | "rejected";
+
   created_at: string;
 };
 
 function sanitizeName(value: string) {
   return value
+
     .replace(/[^\p{L}\s'-]/gu, "")
+
     .replace(/\s{2,}/g, " ")
+
     .slice(0, 50);
 }
 
 function sanitizePhone(value: string) {
   const cleaned = value.replace(/[^\d+ ()-]/g, "");
-  return (cleaned.startsWith("+") ? "+" + cleaned.slice(1).replace(/\+/g, "") : cleaned.replace(/\+/g, "")).slice(0, 24);
+
+  return (
+    cleaned.startsWith("+")
+      ? "+" + cleaned.slice(1).replace(/\+/g, "")
+      : cleaned.replace(/\+/g, "")
+  ).slice(0, 24);
 }
 
 function countDigits(value: string) {
@@ -50,19 +80,27 @@ export default function Birthday() {
   const { user, profile, isApprovedMember } = useAuth();
 
   const [firstName, setFirstName] = useState("");
+
   const [lastName, setLastName] = useState("");
+
   const [birthdayMonth, setBirthdayMonth] = useState("");
+
   const [birthdayDay, setBirthdayDay] = useState("");
+
   const [phone, setPhone] = useState("");
+
   const [ministry, setMinistry] = useState("");
 
   const [photo, setPhoto] = useState<File | null>(null);
+
   const [photoPreview, setPhotoPreview] = useState("");
+
   const [photoLoading, setPhotoLoading] = useState(false);
 
   const [consent, setConsent] = useState(false);
 
   const [loading, setLoading] = useState(false);
+
   const [error, setError] = useState("");
 
   const [existingSubmission, setExistingSubmission] =
@@ -72,15 +110,13 @@ export default function Birthday() {
 
   const [success, setSuccess] = useState("");
 
-  /*
-   * Populate the birthday form with the member's existing
-   * profile information.
-   */
   useEffect(() => {
     if (!profile) return;
 
     setFirstName(profile.first_name || "");
+
     setLastName(profile.last_name || "");
+
     setPhone(profile.phone || "");
   }, [profile]);
 
@@ -92,17 +128,22 @@ export default function Birthday() {
         if (active) {
           setCheckingSubmission(false);
         }
+
         return;
       }
 
       setCheckingSubmission(true);
 
       const { data, error: fetchError } = await supabase
+
         .from("birthday_submissions")
+
         .select(
           "id, first_name, last_name, birthday_month, birthday_day, status, created_at",
         )
+
         .eq("user_id", user.id)
+
         .maybeSingle();
 
       if (!active) return;
@@ -127,10 +168,6 @@ export default function Birthday() {
     };
   }, [user]);
 
-  /*
-   * Clean up the temporary preview URL when the page
-   * unmounts or the preview changes.
-   */
   useEffect(() => {
     return () => {
       if (photoPreview) {
@@ -152,16 +189,19 @@ export default function Birthday() {
 
   function handleFirstNameChange(value: string) {
     setFirstName(sanitizeName(value));
+
     setError("");
   }
 
   function handleLastNameChange(value: string) {
     setLastName(sanitizeName(value));
+
     setError("");
   }
 
   function handlePhoneChange(value: string) {
     setPhone(sanitizePhone(value));
+
     setError("");
   }
 
@@ -193,6 +233,7 @@ export default function Birthday() {
     }
 
     setError("");
+
     setPhotoLoading(true);
 
     try {
@@ -226,10 +267,6 @@ export default function Birthday() {
     } finally {
       setPhotoLoading(false);
 
-      /*
-       * Allows the member to select the same file again
-       * after changing/removing it.
-       */
       event.target.value = "";
     }
   }
@@ -248,203 +285,262 @@ export default function Birthday() {
     setError("");
   }
 
- 
-async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-  event.preventDefault();
-  setError("");
-  setSuccess("");
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
 
-  const cleanFirstName = firstName.trim().replace(/\s{2,}/g, " ");
-  const cleanLastName = lastName.trim().replace(/\s{2,}/g, " ");
-  const cleanPhone = phone.trim().replace(/\s{2,}/g, " ");
-  const cleanMinistry = ministry.trim().replace(/\s{2,}/g, " ");
+    setError("");
 
-  const month = Number(birthdayMonth);
-  const day = Number(birthdayDay);
+    setSuccess("");
 
-  if (!user) {
-    setError("Your session could not be found. Please sign in again.");
-    return;
-  }
+    const cleanFirstName = firstName.trim().replace(/\s{2,}/g, " ");
 
-  if (!isApprovedMember) {
-    setError(
-      "Your church membership must be approved before you can submit birthday information.",
-    );
-    return;
-  }
+    const cleanLastName = lastName.trim().replace(/\s{2,}/g, " ");
 
-  if (existingSubmission) {
-    setError("You already have a birthday submission on your account.");
-    return;
-  }
+    const cleanPhone = phone.trim().replace(/\s{2,}/g, " ");
 
-  if (!cleanFirstName || !/^[\p{L}\s'-]+$/u.test(cleanFirstName)) {
-    setError(
-      "Enter a valid first name using letters, spaces, hyphens or apostrophes.",
-    );
-    return;
-  }
+    const cleanMinistry = ministry.trim().replace(/\s{2,}/g, " ");
 
-  if (!cleanLastName || !/^[\p{L}\s'-]+$/u.test(cleanLastName)) {
-    setError(
-      "Enter a valid last name using letters, spaces, hyphens or apostrophes.",
-    );
-    return;
-  }
+    const month = Number(birthdayMonth);
 
-  if (!month || month < 1 || month > 12) {
-    setError("Please select your birth month.");
-    return;
-  }
+    const day = Number(birthdayDay);
 
-  const maxDays = new Date(2024, month, 0).getDate();
+    if (!user) {
+      setError("Your session could not be found. Please sign in again.");
 
-  if (!day || day < 1 || day > maxDays) {
-    setError("Please select a valid birthday.");
-    return;
-  }
-
-  if (
-    cleanPhone &&
-    (countDigits(cleanPhone) < 10 || countDigits(cleanPhone) > 15)
-  ) {
-    setError("Please enter a valid phone number containing 10–15 digits.");
-    return;
-  }
-
-  if (cleanMinistry.length > 100) {
-    setError("Ministry name is too long.");
-    return;
-  }
-
-  if (!photo || photo.size > 1024 * 1024) {
-    setError("Please select a valid birthday photo no larger than 1 MB.");
-    return;
-  }
-
-  if (!consent) {
-    setError("Please confirm your consent before submitting your information.");
-    return;
-  }
-
-  let uploadedPhotoPath: string | null = null;
-
-  try {
-    setLoading(true);
-
-    // Recheck before uploading. The database unique index is the
-    // final protection against simultaneous duplicate submissions.
-    const { data: existing, error: checkError } = await supabase
-      .from("birthday_submissions")
-      .select("id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (checkError) {
-      throw new Error("We couldn't verify your existing birthday record.");
-    }
-
-    if (existing) {
-      setExistingSubmission({
-        id: existing.id,
-        first_name: cleanFirstName,
-        last_name: cleanLastName,
-        birthday_month: month,
-        birthday_day: day,
-        status: "pending",
-        created_at: new Date().toISOString(),
-      });
-
-      setError("A birthday submission already exists for your account.");
       return;
     }
 
-    // Store the path relative to the private birthday-photos bucket.
-    uploadedPhotoPath = `${user.id}/birthday.jpg`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("birthday-photos")
-      .upload(uploadedPhotoPath, photo, {
-        contentType: "image/jpeg",
-        cacheControl: "3600",
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error("Birthday photo upload failed:", uploadError);
-      uploadedPhotoPath = null;
-      throw new Error("We couldn't upload your photo. Please try again.");
-    }
-
-    const { data: insertedRecord, error: insertError } = await supabase
-      .from("birthday_submissions")
-      .insert({
-        user_id: user.id,
-        first_name: cleanFirstName,
-        last_name: cleanLastName,
-        birthday_month: month,
-        birthday_day: day,
-        phone: cleanPhone || null,
-        email: user.email || null,
-        ministry: cleanMinistry || null,
-        photo_path: uploadedPhotoPath,
-        consent,
-      })
-      .select(
-        "id, first_name, last_name, birthday_month, birthday_day, status, created_at",
-      )
-      .single();
-
-    if (insertError) {
-      console.error("Birthday record insert failed:", insertError);
-      throw new Error(
-        "Your photo was uploaded, but we couldn't save your birthday information.",
+    if (!isApprovedMember) {
+      toast.info(
+        "Your church membership must be approved before you can submit birthday information.",
       );
+
+      return;
     }
 
-    setExistingSubmission(insertedRecord as BirthdaySubmission);
-    setSuccess(
-      "Your birthday information has been submitted successfully. The church will review your submission.",
-    );
+    if (existingSubmission) {
+      setError("You already have a birthday submission on your account.");
 
-    // Clear the form's temporary photo preview and selected file.
-    setPhoto(null);
-    setPhotoPreview((currentPreview) => {
-      if (currentPreview) {
-        URL.revokeObjectURL(currentPreview);
+      return;
+    }
+
+    if (!cleanFirstName || !/^[\p{L}\s'-]+$/u.test(cleanFirstName)) {
+      setError(
+        "Enter a valid first name using letters, spaces, hyphens or apostrophes.",
+      );
+
+      return;
+    }
+
+    if (!cleanLastName || !/^[\p{L}\s'-]+$/u.test(cleanLastName)) {
+      setError(
+        "Enter a valid last name using letters, spaces, hyphens or apostrophes.",
+      );
+
+      return;
+    }
+
+    if (!month || month < 1 || month > 12) {
+      setError("Please select your birth month.");
+
+      return;
+    }
+
+    const maxDays = new Date(2024, month, 0).getDate();
+
+    if (!day || day < 1 || day > maxDays) {
+      setError("Please select a valid birthday.");
+
+      return;
+    }
+
+    if (
+      cleanPhone &&
+      (countDigits(cleanPhone) < 10 || countDigits(cleanPhone) > 15)
+    ) {
+      setError("Please enter a valid phone number containing 10–15 digits.");
+
+      return;
+    }
+
+    if (cleanMinistry.length > 100) {
+      setError("Ministry name is too long.");
+
+      return;
+    }
+
+    if (!photo || photo.size > 1024 * 1024) {
+      setError("Please select a valid birthday photo no larger than 1 MB.");
+
+      return;
+    }
+
+    if (!consent) {
+      setError(
+        "Please confirm your consent before submitting your information.",
+      );
+
+      return;
+    }
+
+    let uploadedPhotoPath: string | null = null;
+
+    try {
+      setLoading(true);
+
+      // Recheck before uploading. The database unique index is the
+
+      // final protection against simultaneous duplicate submissions.
+
+      const { data: existing, error: checkError } = await supabase
+
+        .from("birthday_submissions")
+
+        .select("id")
+
+        .eq("user_id", user.id)
+
+        .maybeSingle();
+
+      if (checkError) {
+        throw new Error("We couldn't verify your existing birthday record.");
       }
-      return "";
-    });
 
-    setConsent(false);
-  } catch (err) {
-    console.error("Birthday submission failed:", err);
+      if (existing) {
+        setExistingSubmission({
+          id: existing.id,
 
-    // Roll back the uploaded photo if the database insert failed.
-    if (uploadedPhotoPath) {
-      const { error: cleanupError } = await supabase.storage
+          first_name: cleanFirstName,
+
+          last_name: cleanLastName,
+
+          birthday_month: month,
+
+          birthday_day: day,
+
+          status: "pending",
+
+          created_at: new Date().toISOString(),
+        });
+
+        setError("A birthday submission already exists for your account.");
+
+        return;
+      }
+
+      // Store the path relative to the private birthday-photos bucket.
+
+      uploadedPhotoPath = `${user.id}/birthday.jpg`;
+
+      const { error: uploadError } = await supabase.storage
+
         .from("birthday-photos")
-        .remove([uploadedPhotoPath]);
 
-      if (cleanupError) {
-        console.error(
-          "Photo cleanup failed; manual cleanup may be required:",
-          cleanupError,
+        .upload(uploadedPhotoPath, photo, {
+          contentType: "image/jpeg",
+
+          cacheControl: "3600",
+
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error("Birthday photo upload failed:", uploadError);
+
+        uploadedPhotoPath = null;
+
+        throw new Error("We couldn't upload your photo. Please try again.");
+      }
+
+      const { data: insertedRecord, error: insertError } = await supabase
+
+        .from("birthday_submissions")
+
+        .insert({
+          user_id: user.id,
+
+          first_name: cleanFirstName,
+
+          last_name: cleanLastName,
+
+          birthday_month: month,
+
+          birthday_day: day,
+
+          phone: cleanPhone || null,
+
+          email: user.email || null,
+
+          ministry: cleanMinistry || null,
+
+          photo_path: uploadedPhotoPath,
+
+          consent,
+        })
+
+        .select(
+          "id, first_name, last_name, birthday_month, birthday_day, status, created_at",
+        )
+
+        .single();
+
+      if (insertError) {
+        console.error("Birthday record insert failed:", insertError);
+
+        throw new Error(
+          "Your photo was uploaded, but we couldn't save your birthday information.",
         );
       }
+
+      setExistingSubmission(insertedRecord as BirthdaySubmission);
+
+      setSuccess(
+        "Your birthday information has been submitted successfully. The church will review your submission.",
+      );
+
+      // Clear the form's temporary photo preview and selected file.
+
+      setPhoto(null);
+
+      setPhotoPreview((currentPreview) => {
+        if (currentPreview) {
+          URL.revokeObjectURL(currentPreview);
+        }
+
+        return "";
+      });
+
+      setConsent(false);
+    } catch (err) {
+      console.error("Birthday submission failed:", err);
+
+      // Roll back the uploaded photo if the database insert failed.
+
+      if (uploadedPhotoPath) {
+        const { error: cleanupError } = await supabase.storage
+
+          .from("birthday-photos")
+
+          .remove([uploadedPhotoPath]);
+
+        if (cleanupError) {
+          console.error(
+            "Photo cleanup failed; manual cleanup may be required:",
+
+            cleanupError,
+          );
+        }
+      }
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong while submitting your birthday information.",
+      );
+    } finally {
+      setLoading(false);
     }
-
-    setError(
-      err instanceof Error
-        ? err.message
-        : "Something went wrong while submitting your birthday information.",
-    );
-  } finally {
-    setLoading(false);
   }
-}
-
 
   return (
     <section>
@@ -480,6 +576,7 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         {checkingSubmission ? (
           <div className="flex min-h-48 items-center justify-center">
             <Loader2 className="animate-spin text-[#D6B45A]" size={24} />
+
             <span className="ml-3 text-sm text-[#07152F]/65">
               Checking your birthday information...
             </span>
@@ -516,7 +613,18 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            {!isApprovedMember && (
+              <div
+                role="status"
+                className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900"
+              >
+                Your birthday form is unavailable until your church membership
+                is approved. Your information will become editable once the
+                church approves your membership.
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} noValidate className="space-y-6">
               {/* Personal information */}
 
               <div>
@@ -549,7 +657,8 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
                     autoComplete="given-name"
                     maxLength={50}
                     required
-                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20"
+                    disabled={!isApprovedMember || loading}
+                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
                   />
                 </div>
 
@@ -571,7 +680,8 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
                     autoComplete="family-name"
                     maxLength={50}
                     required
-                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20"
+                    disabled={!isApprovedMember || loading}
+                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
                   />
                 </div>
               </div>
@@ -603,7 +713,7 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
                     value={birthdayMonth}
                     onChange={(event) => handleMonthChange(event.target.value)}
                     required
-                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20"
+                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
                   >
                     <option value="">Select month</option>
 
@@ -628,11 +738,12 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
                     value={birthdayDay}
                     onChange={(event) => {
                       setBirthdayDay(event.target.value);
+
                       setError("");
                     }}
                     disabled={!birthdayMonth}
                     required
-                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition disabled:cursor-not-allowed disabled:bg-gray-100 focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20"
+                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500 focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20"
                   >
                     <option value="">Select day</option>
 
@@ -673,7 +784,8 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
                     pattern="\+?[0-9 ()-]{7,24}"
                     title="Use 10–15 digits, optionally with a leading +, spaces, brackets or hyphens."
                     placeholder="+234 800 000 0000"
-                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20"
+                    disabled={!isApprovedMember || loading}
+                    className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
                   />
                 </div>
 
@@ -714,11 +826,13 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
                   value={ministry}
                   onChange={(event) => {
                     setMinistry(event.target.value.slice(0, 100));
+
                     setError("");
                   }}
                   maxLength={100}
                   placeholder="e.g. Choir, Youth Ministry"
-                  className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20"
+                  disabled={!isApprovedMember || loading}
+                  className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
                 />
 
                 <p className="mt-2 text-xs leading-5 text-[#07152F]/50">
@@ -754,7 +868,9 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
                         <button
                           type="button"
                           onClick={removePhoto}
-                          disabled={photoLoading || loading}
+                          disabled={
+                            !isApprovedMember || photoLoading || loading
+                          }
                           className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#07152F]/85 text-white backdrop-blur transition hover:bg-[#07152F] disabled:opacity-50"
                           aria-label="Remove birthday photo"
                         >
@@ -780,7 +896,9 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
                             type="file"
                             accept="image/jpeg,image/png,image/webp"
                             onChange={handlePhotoChange}
-                            disabled={photoLoading || loading}
+                            disabled={
+                              !isApprovedMember || photoLoading || loading
+                            }
                             className="sr-only"
                           />
                         </label>
@@ -817,7 +935,7 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
                         onChange={handlePhotoChange}
-                        disabled={photoLoading || loading}
+                        disabled={!isApprovedMember || photoLoading || loading}
                         className="sr-only"
                       />
                     </label>
@@ -844,8 +962,10 @@ async function handleSubmit(event: FormEvent<HTMLFormElement>) {
                     checked={consent}
                     onChange={(event) => {
                       setConsent(event.target.checked);
+
                       setError("");
                     }}
+                    disabled={!isApprovedMember || loading}
                     className="mt-1 h-4 w-4 accent-[#07152F]"
                   />
 

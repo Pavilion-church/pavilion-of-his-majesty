@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 
+import { toast } from "react-toastify";
 import { supabase } from "../../lib/supabase";
 
 type EventStatus = "draft" | "published" | "archived";
@@ -136,6 +137,8 @@ export default function AdminEvents() {
   const [editingEvent, setEditingEvent] = useState<ChurchEvent | null>(null);
   const [form, setForm] = useState<EventForm>(emptyForm);
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] =
+    useState<ChurchEvent | null>(null);
 
   const loadEvents = useCallback(async () => {
     setLoading(true);
@@ -346,7 +349,7 @@ export default function AdminEvents() {
 
         if (updateError) throw updateError;
 
-        setNotice("Event updated successfully.");
+        toast.success("Event updated successfully.");
       } else {
         const { error: insertError } = await supabase
           .from("events")
@@ -354,7 +357,7 @@ export default function AdminEvents() {
 
         if (insertError) throw insertError;
 
-        setNotice(
+        toast.success(
           form.status === "published"
             ? "Event created and published successfully."
             : "Event saved successfully.",
@@ -374,6 +377,7 @@ export default function AdminEvents() {
           ? "That event URL slug is already in use. Choose a different slug."
           : "We couldn't save this event. Please check your details and try again.";
 
+      toast.error(message);
       setError(message);
     } finally {
       setSaving(false);
@@ -402,30 +406,32 @@ export default function AdminEvents() {
 
       if (updateError) throw updateError;
 
-      setNotice(
+      toast.success(
         status === "published"
-          ? "Event published."
+          ? "Event published successfully."
           : status === "archived"
-            ? "Event archived."
-            : "Event moved to drafts.",
+            ? "Event archived successfully."
+            : "Event moved to drafts successfully.",
       );
 
       await loadEvents();
     } catch (err) {
       console.error("Event status update failed:", err);
+      toast.error("We couldn't change the event status. Please try again.");
       setError("We couldn't change the event status. Please try again.");
     } finally {
       setBusyId(null);
     }
   }
 
-  async function deleteEvent(event: ChurchEvent) {
-    const confirmed = window.confirm(
-      `Permanently delete "${event.title}"? This cannot be undone.`,
-    );
+  function deleteEvent(event: ChurchEvent) {
+    setDeleteConfirmation(event);
+  }
 
-    if (!confirmed) return;
+  async function confirmDeleteEvent() {
+    if (!deleteConfirmation) return;
 
+    const event = deleteConfirmation;
     setBusyId(event.id);
     setError("");
     setNotice("");
@@ -438,10 +444,12 @@ export default function AdminEvents() {
 
       if (deleteError) throw deleteError;
 
-      setNotice("Event deleted.");
+      setDeleteConfirmation(null);
+      toast.success(`"${event.title}" was deleted successfully.`);
       await loadEvents();
     } catch (err) {
       console.error("Event deletion failed:", err);
+      toast.error("We couldn't delete this event. Please try again.");
       setError("We couldn't delete this event. Please try again.");
     } finally {
       setBusyId(null);
@@ -705,6 +713,67 @@ export default function AdminEvents() {
           </div>
         )}
       </div>
+
+      {deleteConfirmation && (
+        <div
+          className="fixed inset-0 z-60 flex items-center justify-center bg-[#07152F]/60 p-4"
+          onClick={() =>
+            busyId !== deleteConfirmation.id && setDeleteConfirmation(null)
+          }
+        >
+          <section
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-event-title"
+            aria-describedby="delete-event-description"
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-700">
+              <X size={22} />
+            </div>
+            <h2
+              id="delete-event-title"
+              className="mt-4 text-lg font-semibold text-[#07152F]"
+            >
+              Delete event?
+            </h2>
+            <p
+              id="delete-event-description"
+              className="mt-2 text-sm leading-6 text-[#07152F]/65"
+            >
+              Are you sure you want to permanently delete{" "}
+              <span className="font-semibold text-[#07152F]">
+                {deleteConfirmation.title}
+              </span>
+              ? This action cannot be undone.
+            </p>
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                disabled={busyId === deleteConfirmation.id}
+                onClick={() => setDeleteConfirmation(null)}
+                className="rounded-xl border border-[#07152F]/15 px-4 py-2.5 text-sm font-semibold text-[#07152F] hover:bg-[#07152F]/5 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={busyId === deleteConfirmation.id}
+                onClick={() => void confirmDeleteEvent()}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {busyId === deleteConfirmation.id && (
+                  <Loader2 size={16} className="animate-spin" />
+                )}
+                {busyId === deleteConfirmation.id
+                  ? "Deleting..."
+                  : "Delete event"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
 
       {editorOpen && (
         <div

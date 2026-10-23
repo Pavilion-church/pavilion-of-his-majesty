@@ -27,7 +27,7 @@ function countDigits(value: string) {
 }
 
 export default function Profile() {
-  const { profile, user, refreshProfile } = useAuth();
+  const { profile, user, refreshProfile, isApprovedMember } = useAuth();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -58,6 +58,13 @@ export default function Profile() {
     event.preventDefault();
 
     if (loading) return;
+
+    if (!isApprovedMember) {
+      toast.info(
+        "Your church membership must be approved before you can update your profile information.",
+      );
+      return;
+    }
 
     const cleanFirstName = firstName.trim().replace(/\s{2,}/g, " ");
     const cleanLastName = lastName.trim().replace(/\s{2,}/g, " ");
@@ -208,7 +215,18 @@ export default function Profile() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          {!isApprovedMember && (
+            <div
+              role="status"
+              className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900"
+            >
+              Your profile details are read-only while your membership is
+              awaiting approval. Once the church approves your membership, you
+              can update your personal information.
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} noValidate className="space-y-5">
             <div className="grid gap-5 sm:grid-cols-2">
               <div>
                 <label
@@ -229,7 +247,8 @@ export default function Profile() {
                   autoComplete="given-name"
                   maxLength={50}
                   required
-                  className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20"
+                  disabled={!isApprovedMember || loading}
+                  className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
                 />
               </div>
 
@@ -250,7 +269,8 @@ export default function Profile() {
                   autoComplete="family-name"
                   maxLength={50}
                   required
-                  className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20"
+                  disabled={!isApprovedMember || loading}
+                  className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
                 />
               </div>
             </div>
@@ -275,7 +295,8 @@ export default function Profile() {
                 pattern="\+?[0-9 ()-]{7,24}"
                 title="Use 10–15 digits, optionally with a leading +, spaces, brackets or hyphens."
                 placeholder="+234 800 000 0000"
-                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20"
+                disabled={!isApprovedMember || loading}
+                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#D6B45A] focus:ring-2 focus:ring-[#D6B45A]/20 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
               />
 
               <p className="mt-2 text-xs leading-5 text-[#07152F]/50">

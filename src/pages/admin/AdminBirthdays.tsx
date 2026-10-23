@@ -8,7 +8,9 @@ import {
   Search,
   Trash2,
   X,
+  AlertTriangle,
 } from "lucide-react";
+import { toast } from "react-toastify";
 
 import { supabase } from "../../lib/supabase";
 
@@ -79,10 +81,11 @@ export default function AdminBirthdays() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
   const [selectedPhoto, setSelectedPhoto] = useState<BirthdaySubmission | null>(
     null,
   );
+  const [photoPendingDeletion, setPhotoPendingDeletion] =
+    useState<BirthdaySubmission | null>(null);
 
   const loadRecords = useCallback(async () => {
     setLoading(true);
@@ -151,9 +154,10 @@ export default function AdminBirthdays() {
       setRecords(hydrated);
     } catch (err) {
       console.error("Unable to load birthday submissions:", err);
-      setError(
-        "We couldn't load birthday submissions. Check your admin permissions and try again.",
-      );
+      const message =
+        "We couldn't load birthday submissions. Check your admin permissions and try again.";
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -170,7 +174,6 @@ export default function AdminBirthdays() {
   ) {
     setBusyId(record.id);
     setError("");
-    setNotice("");
 
     try {
       const { error: updateError } = await supabase
@@ -180,11 +183,11 @@ export default function AdminBirthdays() {
 
       if (updateError) throw updateError;
 
-      setNotice(successMessage);
+      toast.success(successMessage);
       await loadRecords();
     } catch (err) {
       console.error("Birthday update failed:", err);
-      setError("We couldn't update this submission. Please try again.");
+      toast.error("We couldn't update this submission. Please try again.");
     } finally {
       setBusyId(null);
     }
@@ -192,12 +195,12 @@ export default function AdminBirthdays() {
 
   async function deletePhoto(record: BirthdaySubmission) {
     if (!record.photo_path) {
-      setError("There is no stored photo to delete.");
+      toast.error("There is no stored photo to delete.");
       return;
     }
 
     if (record.celebration_status === "pending") {
-      setError(
+      toast.error(
         "Mark the celebration completed or not required before deleting this photo.",
       );
       return;
@@ -205,7 +208,7 @@ export default function AdminBirthdays() {
 
     if (record.celebration_status === "completed") {
       if (!record.celebration_completed_at) {
-        setError(
+        toast.error(
           "This celebration has no completion timestamp. Review the record before deleting its photo.",
         );
         return;
@@ -218,22 +221,15 @@ export default function AdminBirthdays() {
 
       if (remainingMs > 0) {
         const remainingHours = Math.ceil(remainingMs / (60 * 60 * 1000));
-        setError(
+        toast.error(
           `This photo must be retained for at least 24 hours after celebration. Try again in approximately ${remainingHours} hour(s).`,
         );
         return;
       }
     }
 
-    const confirmed = window.confirm(
-      `Permanently delete ${record.first_name} ${record.last_name}'s birthday photo from Supabase Storage? This cannot be undone.`,
-    );
-
-    if (!confirmed) return;
-
     setBusyId(record.id);
     setError("");
-    setNotice("");
 
     try {
       const { error: storageError } = await supabase.storage
@@ -258,14 +254,15 @@ export default function AdminBirthdays() {
       }
 
       setSelectedPhoto(null);
-      setNotice(
+      toast.success(
         "The photo has been deleted from Storage. The birthday record remains.",
       );
 
+      setPhotoPendingDeletion(null);
       await loadRecords();
     } catch (err) {
       console.error("Photo deletion failed:", err);
-      setError(
+      toast.error(
         err instanceof Error
           ? err.message
           : "We couldn't delete the photo. Please check its status and try again.",
@@ -292,7 +289,7 @@ export default function AdminBirthdays() {
       window.open(data.signedUrl, "_blank", "noopener,noreferrer");
     } catch (err) {
       console.error("Photo download failed:", err);
-      setError("We couldn't prepare the photo download. Please try again.");
+      toast.error("We couldn't prepare the photo download. Please try again.");
     } finally {
       setBusyId(null);
     }
@@ -362,15 +359,6 @@ export default function AdminBirthdays() {
           className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700"
         >
           {error}
-        </div>
-      )}
-
-      {notice && (
-        <div
-          role="status"
-          className="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm leading-6 text-green-800"
-        >
-          {notice}
         </div>
       )}
 
@@ -637,7 +625,7 @@ export default function AdminBirthdays() {
                         <button
                           type="button"
                           disabled={busyId === record.id}
-                          onClick={() => void deletePhoto(record)}
+                          onClick={() => setPhotoPendingDeletion(record)}
                           className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
                         >
                           <Trash2 size={15} />
@@ -693,6 +681,81 @@ export default function AdminBirthdays() {
               {birthdayLabel(selectedPhoto)}
             </p>
           </div>
+        </div>
+      )}
+
+      {photoPendingDeletion && (
+        <div
+          className="fixed inset-0 z-60 flex items-center justify-center bg-[#07152F]/70 p-4"
+          onClick={() =>
+            busyId !== photoPendingDeletion.id && setPhotoPendingDeletion(null)
+          }
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-birthday-photo-title"
+            aria-describedby="delete-birthday-photo-description"
+            className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl sm:p-7"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-700">
+                <AlertTriangle size={22} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2
+                  id="delete-birthday-photo-title"
+                  className="font-serif text-xl text-[#07152F]"
+                >
+                  Permanently delete birthday photo?
+                </h2>
+                <p
+                  id="delete-birthday-photo-description"
+                  className="mt-3 text-sm leading-6 text-[#07152F]/70"
+                >
+                  You are about to permanently delete{" "}
+                  <strong>
+                    {photoPendingDeletion.first_name}{" "}
+                    {photoPendingDeletion.last_name}
+                  </strong>
+                  's photo from private Supabase Storage. This action cannot be
+                  undone. The birthday submission and its other details will
+                  remain.
+                </p>
+                <p className="mt-3 rounded-xl bg-[#F8F6F1] p-3 text-xs leading-5 text-[#07152F]/65">
+                  {photoPendingDeletion.celebration_status === "completed"
+                    ? "The 24-hour retention period after the celebration must have elapsed before deletion can proceed."
+                    : "This photo is eligible for deletion because the celebration was marked as not required."}
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                disabled={busyId === photoPendingDeletion.id}
+                onClick={() => setPhotoPendingDeletion(null)}
+                className="rounded-xl border border-[#07152F]/15 px-4 py-3 text-sm font-semibold text-[#07152F] hover:bg-[#07152F]/5 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={busyId === photoPendingDeletion.id}
+                onClick={() => void deletePhoto(photoPendingDeletion)}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-700 px-4 py-3 text-sm font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {busyId === photoPendingDeletion.id ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Trash2 size={16} />
+                )}
+                {busyId === photoPendingDeletion.id
+                  ? "Deleting photo…"
+                  : "Delete permanently"}
+              </button>
+            </div>
+          </section>
         </div>
       )}
     </section>

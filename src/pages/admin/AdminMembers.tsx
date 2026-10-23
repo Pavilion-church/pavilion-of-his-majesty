@@ -8,6 +8,8 @@ import {
   XCircle,
 } from "lucide-react";
 
+import { toast } from "react-toastify";
+
 import { supabase } from "../../lib/supabase";
 
 type Member = {
@@ -43,7 +45,11 @@ export default function AdminMembers() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [confirmation, setConfirmation] = useState<{
+    member: Member;
+    status: MemberStatus;
+    label: string;
+  } | null>(null);
 
   const loadMembers = useCallback(async () => {
     setLoading(true);
@@ -62,9 +68,10 @@ export default function AdminMembers() {
       setMembers((data ?? []) as Member[]);
     } catch (err) {
       console.error("Unable to load members:", err);
-      setError(
-        "We couldn't load member profiles. Check administrator permissions and try again.",
-      );
+      const message =
+        "We couldn't load member profiles. Check administrator permissions and try again.";
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -106,7 +113,7 @@ export default function AdminMembers() {
     });
   }, [members, search, filter]);
 
-  async function updateMembershipStatus(member: Member, status: MemberStatus) {
+  function requestMembershipStatusChange(member: Member, status: MemberStatus) {
     const label =
       status === "approved"
         ? "approve"
@@ -114,17 +121,12 @@ export default function AdminMembers() {
           ? "reject"
           : "return to pending review";
 
-    if (
-      !window.confirm(
-        `Are you sure you want to ${label} ${member.first_name ?? ""} ${member.last_name ?? ""}?`,
-      )
-    ) {
-      return;
-    }
+    setConfirmation({ member, status, label });
+  }
 
+  async function updateMembershipStatus(member: Member, status: MemberStatus) {
     setBusyId(member.id);
     setError("");
-    setNotice("");
 
     try {
       const { error: updateError } = await supabase.rpc("set_member_status", {
@@ -140,10 +142,23 @@ export default function AdminMembers() {
         ),
       );
 
-      setNotice(`Membership status updated to ${status}.`);
+      const fullName =
+        `${member.first_name ?? ""} ${member.last_name ?? ""}`.trim() ||
+        "Member";
+      const successMessage =
+        status === "approved"
+          ? `${fullName}'s membership has been approved.`
+          : status === "rejected"
+            ? `${fullName}'s membership has been rejected.`
+            : `${fullName}'s membership has been returned to pending review.`;
+
+      toast.success(successMessage);
+      setConfirmation(null);
     } catch (err) {
       console.error("Membership status update failed:", err);
-      setError("We couldn't update this membership. Please try again.");
+      const message = "We couldn't update this membership. Please try again.";
+      setError(message);
+      toast.error(message);
     } finally {
       setBusyId(null);
     }
@@ -181,15 +196,6 @@ export default function AdminMembers() {
           className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700"
         >
           {error}
-        </div>
-      )}
-
-      {notice && (
-        <div
-          role="status"
-          className="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm leading-6 text-green-800"
-        >
-          {notice}
         </div>
       )}
 
@@ -315,7 +321,7 @@ export default function AdminMembers() {
                             type="button"
                             disabled={busyId === member.id}
                             onClick={() =>
-                              void updateMembershipStatus(member, "approved")
+                              requestMembershipStatusChange(member, "approved")
                             }
                             className="inline-flex items-center gap-2 rounded-lg bg-[#07152F] px-3 py-2 text-sm font-semibold text-white hover:bg-[#0d234d] disabled:opacity-50"
                           >
@@ -329,7 +335,7 @@ export default function AdminMembers() {
                             type="button"
                             disabled={busyId === member.id}
                             onClick={() =>
-                              void updateMembershipStatus(member, "rejected")
+                              requestMembershipStatusChange(member, "rejected")
                             }
                             className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
                           >
@@ -343,7 +349,7 @@ export default function AdminMembers() {
                             type="button"
                             disabled={busyId === member.id}
                             onClick={() =>
-                              void updateMembershipStatus(member, "pending")
+                              requestMembershipStatusChange(member, "pending")
                             }
                             className="rounded-lg border border-[#07152F]/15 px-3 py-2 text-sm font-medium text-[#07152F] hover:bg-[#07152F]/5 disabled:opacity-50"
                           >
@@ -359,6 +365,91 @@ export default function AdminMembers() {
           </div>
         )}
       </div>
+
+      {confirmation && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[#07152F]/60 p-4"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (
+              event.target === event.currentTarget &&
+              busyId !== confirmation.member.id
+            ) {
+              setConfirmation(null);
+            }
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="membership-confirmation-title"
+            aria-describedby="membership-confirmation-description"
+            className="w-full max-w-md rounded-2xl border border-[#D6B45A]/30 bg-white p-6 shadow-2xl"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#D6B45A]/15 text-[#785B14]">
+              <ShieldCheck size={24} />
+            </div>
+            <h2
+              id="membership-confirmation-title"
+              className="mt-4 text-xl font-semibold text-[#07152F]"
+            >
+              Confirm membership change
+            </h2>
+            <p
+              id="membership-confirmation-description"
+              className="mt-2 text-sm leading-6 text-[#07152F]/65"
+            >
+              Are you sure you want to{" "}
+              {confirmation.label === "return to pending review"
+                ? "return"
+                : confirmation.label === "approve"
+                  ? "approve"
+                  : "reject"}{" "}
+              <span className="font-semibold text-[#07152F]">
+                {`${confirmation.member.first_name ?? ""} ${confirmation.member.last_name ?? ""}`.trim() ||
+                  "this member"}
+              </span>
+              {confirmation.label === "return to pending review"
+                ? "'s membership application to pending review?"
+                : confirmation.status === "approved"
+                  ? "'s membership application?"
+                  : "'s membership application?"}
+              {confirmation.status === "approved" && (
+                <span>
+                  {" "}
+                  This grants the member access to features reserved for
+                  approved members.
+                </span>
+              )}
+            </p>
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setConfirmation(null)}
+                disabled={busyId === confirmation.member.id}
+                className="rounded-xl border border-[#07152F]/15 px-4 py-2.5 text-sm font-semibold text-[#07152F] hover:bg-[#07152F]/5 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  void updateMembershipStatus(
+                    confirmation.member,
+                    confirmation.status,
+                  )
+                }
+                disabled={busyId === confirmation.member.id}
+                className={`rounded-xl px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60 ${confirmation.status === "rejected" ? "bg-red-700 hover:bg-red-800" : "bg-[#07152F] hover:bg-[#0d234d]"}`}
+              >
+                {busyId === confirmation.member.id
+                  ? "Updating…"
+                  : "Confirm change"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

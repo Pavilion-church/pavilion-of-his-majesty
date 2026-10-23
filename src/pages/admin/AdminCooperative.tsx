@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Search,
   Users,
@@ -20,13 +20,26 @@ type CooperativeInterestRecord = {
   created_at: string;
 };
 
+type MemberProfile = {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+};
+
+type DisplayRecord = CooperativeInterestRecord & {
+  display_first_name: string | null;
+  display_last_name: string | null;
+  display_phone: string | null;
+};
+
 export default function AdminCooperative() {
-  const [records, setRecords] = useState<CooperativeInterestRecord[]>([]);
+  const [records, setRecords] = useState<DisplayRecord[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  async function loadRecords() {
+  const loadRecords = useCallback(async () => {
     setLoading(true);
     setError("");
 
@@ -43,28 +56,73 @@ export default function AdminCooperative() {
         "We couldn't load cooperative interest records. Check your admin access and database policies.",
       );
       setRecords([]);
-    } else {
-      setRecords((data ?? []) as CooperativeInterestRecord[]);
+      setLoading(false);
+      return;
     }
 
+    const interestRecords = (data ?? []) as CooperativeInterestRecord[];
+    const missingProfileIds = [
+      ...new Set(
+        interestRecords
+          .filter(
+            (record) =>
+              (!record.first_name && !record.last_name) || !record.phone,
+          )
+          .map((record) => record.user_id),
+      ),
+    ];
+
+    let profilesById = new Map<string, MemberProfile>();
+    if (missingProfileIds.length > 0) {
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name, phone")
+        .in("id", missingProfileIds);
+
+      if (profileError) {
+        // The submission itself is still useful; keep showing its saved fields.
+        console.error(
+          "Unable to load profile fallbacks for cooperative interest:",
+          profileError,
+        );
+      } else {
+        profilesById = new Map(
+          ((profileData ?? []) as MemberProfile[]).map((profile) => [
+            profile.id,
+            profile,
+          ]),
+        );
+      }
+    }
+
+    setRecords(
+      interestRecords.map((record) => {
+        const profile = profilesById.get(record.user_id);
+        return {
+          ...record,
+          display_first_name: record.first_name || profile?.first_name || null,
+          display_last_name: record.last_name || profile?.last_name || null,
+          display_phone: record.phone || profile?.phone || null,
+        };
+      }),
+    );
     setLoading(false);
-  }
+  }, []);
 
   useEffect(() => {
     void loadRecords();
-  }, []);
+  }, [loadRecords]);
 
   const filteredRecords = records.filter((record) => {
     const text = [
-      record.first_name,
-      record.last_name,
+      record.display_first_name,
+      record.display_last_name,
       record.email,
-      record.phone,
+      record.display_phone,
     ]
       .filter(Boolean)
       .join(" ")
       .toLowerCase();
-
     return text.includes(search.trim().toLowerCase());
   });
 
@@ -83,14 +141,13 @@ export default function AdminCooperative() {
             Cooperative.
           </p>
         </div>
-
         <button
           type="button"
           onClick={() => void loadRecords()}
           disabled={loading}
           className="inline-flex items-center justify-center gap-2 rounded-full border border-[#07152f]/15 px-4 py-2.5 text-sm font-medium text-[#07152f] hover:bg-[#07152f]/5 disabled:opacity-50"
         >
-          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />{" "}
           Refresh
         </button>
       </div>
@@ -107,7 +164,6 @@ export default function AdminCooperative() {
             {records.length}
           </p>
         </div>
-
         <div className="rounded-2xl border border-gray-200 bg-white p-6">
           <p className="text-sm text-gray-600">Purpose</p>
           <p className="mt-3 text-sm leading-6 text-gray-700">
@@ -161,72 +217,70 @@ export default function AdminCooperative() {
           </div>
         ) : (
           <div className="mt-6 space-y-4">
-            {filteredRecords.map((record) => (
-              <article
-                key={record.id}
-                className="rounded-xl border border-gray-200 p-5"
-              >
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <h2 className="font-semibold text-[#07152f]">
-                      {[record.first_name, record.last_name]
-                        .filter(Boolean)
-                        .join(" ") || "Name not provided"}
-                    </h2>
-
-                    <div className="mt-3 flex flex-col gap-2 text-sm text-gray-600">
-                      {record.email && (
-                        <a
-                          href={`mailto:${record.email}`}
-                          className="flex items-center gap-2 break-all hover:text-[#a68f64]"
-                        >
-                          <Mail size={15} />
-                          {record.email}
-                        </a>
-                      )}
-
-                      {record.phone && (
-                        <a
-                          href={`tel:${record.phone}`}
-                          className="flex items-center gap-2 hover:text-[#a68f64]"
-                        >
-                          <Phone size={15} />
-                          {record.phone}
-                        </a>
-                      )}
-
-                      <p className="flex items-center gap-2">
-                        <CalendarDays size={15} />
-                        Submitted{" "}
-                        {new Date(record.created_at).toLocaleDateString(
-                          "en-NG",
-                          {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          },
+            {filteredRecords.map((record) => {
+              const fullName = [
+                record.display_first_name,
+                record.display_last_name,
+              ]
+                .filter(Boolean)
+                .join(" ")
+                .trim();
+              return (
+                <article
+                  key={record.id}
+                  className="rounded-xl border border-gray-200 p-5"
+                >
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h2 className="font-semibold text-[#07152f]">
+                        {fullName || "Name not provided"}
+                      </h2>
+                      <div className="mt-3 flex flex-col gap-2 text-sm text-gray-600">
+                        {record.email && (
+                          <a
+                            href={`mailto:${record.email}`}
+                            className="flex items-center gap-2 break-all hover:text-[#a68f64]"
+                          >
+                            <Mail size={15} />
+                            {record.email}
+                          </a>
                         )}
+                        {record.display_phone && (
+                          <a
+                            href={`tel:${record.display_phone}`}
+                            className="flex items-center gap-2 hover:text-[#a68f64]"
+                          >
+                            <Phone size={15} />
+                            {record.display_phone}
+                          </a>
+                        )}
+                        <p className="flex items-center gap-2">
+                          <CalendarDays size={15} />
+                          Submitted{" "}
+                          {new Date(record.created_at).toLocaleDateString(
+                            "en-NG",
+                            { day: "numeric", month: "short", year: "numeric" },
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="inline-flex w-fit rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">
+                      Interested
+                    </span>
+                  </div>
+                  {record.message && (
+                    <div className="mt-5 rounded-lg bg-[#f8f6f1] p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        Message
+                      </p>
+                      <p className="mt-2 whitespace-pre-wrap wrap-break-word text-sm leading-6 text-gray-700">
+                        {record.message}
                       </p>
                     </div>
-                  </div>
-
-                  <span className="inline-flex w-fit rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800">
-                    Interested
-                  </span>
-                </div>
-
-                {record.message && (
-                  <div className="mt-5 rounded-lg bg-[#f8f6f1] p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      Message
-                    </p>
-                    <p className="mt-2 whitespace-pre-wrap wrap-break-word text-sm leading-6 text-gray-700">
-                      {record.message}
-                    </p>
-                  </div>
-                )}
-              </article>
-            ))}
+                  )}
+                </article>
+              );
+            })}
           </div>
         )}
       </div>
