@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -118,6 +118,70 @@ export default function Contact() {
 
   const errorClass = "mt-1.5 text-xs leading-5 text-red-600";
 
+  
+  useEffect(() => {
+    const title = "Contact Us | The Pavilion of His Majesty, RCCG Oyo";
+    const description =
+      "Contact The Pavilion of His Majesty, RCCG, Akinmoorin, Oyo, Oyo State. Find our church address, phone number and email, get directions, or send us a message.";
+
+    document.title = title;
+
+    const setMeta = (name: string, content: string) => {
+      let element = document.querySelector<HTMLMetaElement>(
+        `meta[name="${name}"]`,
+      );
+
+      if (!element) {
+        element = document.createElement("meta");
+        element.setAttribute("name", name);
+        document.head.appendChild(element);
+      }
+
+      element.content = content;
+    };
+
+    const setProperty = (property: string, content: string) => {
+      let element = document.querySelector<HTMLMetaElement>(
+        `meta[property="${property}"]`,
+      );
+
+      if (!element) {
+        element = document.createElement("meta");
+        element.setAttribute("property", property);
+        document.head.appendChild(element);
+      }
+
+      element.content = content;
+    };
+
+    const canonicalUrl = `${window.location.origin}/contact`;
+
+    let canonical = document.querySelector<HTMLLinkElement>(
+      'link[rel="canonical"]',
+    );
+
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.rel = "canonical";
+      document.head.appendChild(canonical);
+    }
+
+    canonical.href = canonicalUrl;
+
+    setMeta("description", description);
+    setMeta("robots", "index, follow");
+    setMeta("twitter:card", "summary_large_image");
+    setMeta("twitter:title", title);
+    setMeta("twitter:description", description);
+
+    setProperty("og:type", "website");
+    setProperty("og:title", title);
+    setProperty("og:description", description);
+    setProperty("og:url", canonicalUrl);
+    setProperty("og:site_name", "The Pavilion of His Majesty");
+  }, []);
+
+
   return (
     <div>
       {/* Hero */}
@@ -134,8 +198,8 @@ export default function Contact() {
             </h1>
 
             <p className="mt-6 max-w-2xl text-base leading-8 text-white/70 sm:text-lg">
-              Whether you have a question, need more information or simply
-              want to connect with us, we are happy to hear from you.
+              Whether you have a question, need more information or simply want
+              to connect with us, we are happy to hear from you.
             </p>
           </div>
         </div>
@@ -227,8 +291,8 @@ export default function Contact() {
 
             <div className="mt-10 border-l-2 border-[#d6b45a] pl-5">
               <p className="text-sm leading-7 text-[#6b7280]">
-                You can also reach us directly through the phone number or
-                email above.
+                You can also reach us directly through the phone number or email
+                above.
               </p>
             </div>
           </div>
@@ -245,8 +309,8 @@ export default function Contact() {
                 </h3>
 
                 <p className="mt-3 leading-7 text-[#4b5563]">
-                  Thank you for contacting The Pavilion of His Majesty. We
-                  will get back to you as soon as possible.
+                  Thank you for contacting The Pavilion of His Majesty. We will
+                  get back to you as soon as possible.
                 </p>
 
                 <button
@@ -324,7 +388,8 @@ export default function Contact() {
                     htmlFor="phone"
                     className="text-sm font-medium text-[#111827]"
                   >
-                    Phone Number <span className="text-gray-500">(optional)</span>
+                    Phone Number{" "}
+                    <span className="text-gray-500">(optional)</span>
                   </label>
 
                   <input
@@ -431,8 +496,8 @@ export default function Contact() {
           </h2>
 
           <p className="mt-5 leading-8 text-white/65">
-            Come worship with us, connect with the church family and be part
-            of what God is doing at The Pavilion of His Majesty.
+            Come worship with us, connect with the church family and be part of
+            what God is doing at The Pavilion of His Majesty.
           </p>
         </div>
       </section>

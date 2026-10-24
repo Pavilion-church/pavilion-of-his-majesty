@@ -1,8 +1,71 @@
 import { ArrowRight, Heart, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useEffect } from "react";
 import { ministries } from "../assets/data";
 
 export default function Ministries() {
+  useEffect(() => {
+    const title = "Ministries | The Pavilion of His Majesty, RCCG Oyo";
+    const description =
+      "Explore the various ministries at The Pavilion of His Majesty, RCCG, in Akinmoorin, Oyo, Oyo State. Discover how you can serve and grow in your faith.";
+
+    document.title = title;
+
+    const setMeta = (name: string, content: string) => {
+      let element = document.querySelector<HTMLMetaElement>(
+        `meta[name="${name}"]`,
+      );
+
+      if (!element) {
+        element = document.createElement("meta");
+        element.setAttribute("name", name);
+        document.head.appendChild(element);
+      }
+
+      element.content = content;
+    };
+
+    const setProperty = (property: string, content: string) => {
+      let element = document.querySelector<HTMLMetaElement>(
+        `meta[property="${property}"]`,
+      );
+
+      if (!element) {
+        element = document.createElement("meta");
+        element.setAttribute("property", property);
+        document.head.appendChild(element);
+      }
+
+      element.content = content;
+    };
+
+    const canonicalUrl = `${window.location.origin}/ministries`;
+
+    let canonical = document.querySelector<HTMLLinkElement>(
+      'link[rel="canonical"]',
+    );
+
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.rel = "canonical";
+      document.head.appendChild(canonical);
+    }
+
+    canonical.href = canonicalUrl;
+
+    setMeta("description", description);
+    setMeta("robots", "index, follow");
+    setMeta("twitter:card", "summary_large_image");
+    setMeta("twitter:title", title);
+    setMeta("twitter:description", description);
+
+    setProperty("og:type", "website");
+    setProperty("og:title", title);
+    setProperty("og:description", description);
+    setProperty("og:url", canonicalUrl);
+    setProperty("og:site_name", "The Pavilion of His Majesty");
+  }, []);
+
   return (
     <div className="bg-[#f8f6f1] text-[#111827]">
       {/* HERO */}

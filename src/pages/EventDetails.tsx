@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, CalendarDays, MapPin } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { usePageMeta } from "../hooks/usePageMeta";
 
 type ChurchEvent = {
   id: string;
@@ -29,6 +30,17 @@ export default function EventDetails() {
   const [event, setEvent] = useState<ChurchEvent | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  usePageMeta({
+    title: event?.title
+      ? `${event.title} | The Pavilion of His Majesty`
+      : "Church Event | The Pavilion of His Majesty, RCCG Oyo",
+    description:
+      event?.short_description ||
+      event?.description?.slice(0, 155) ||
+      "Discover church events, celebrations and programmes at The Pavilion of His Majesty, RCCG, in Akinmoorin, Oyo, Oyo State.",
+    path: event ? `/events/${event.slug}` : "/events",
+  });
 
   useEffect(() => {
     let active = true;

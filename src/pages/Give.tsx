@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Copy, Heart, Mail, MapPin } from "lucide-react";
 import { givingInfo, churchInfo } from "../assets/data";
 
@@ -5,6 +6,68 @@ export default function Give() {
   const copyAccountNumber = async () => {
     await navigator.clipboard.writeText(givingInfo.accountNumber);
   };
+
+  useEffect(() => {
+    const title = "Give | The Pavilion of His Majesty, RCCG Oyo";
+    const description =
+      "Support the work of The Pavilion of His Majesty through your giving. Your contribution helps sustain our ministry and serve those in need.";
+
+    document.title = title;
+
+    const setMeta = (name: string, content: string) => {
+      let element = document.querySelector<HTMLMetaElement>(
+        `meta[name="${name}"]`,
+      );
+
+      if (!element) {
+        element = document.createElement("meta");
+        element.setAttribute("name", name);
+        document.head.appendChild(element);
+      }
+
+      element.content = content;
+    };
+
+    const setProperty = (property: string, content: string) => {
+      let element = document.querySelector<HTMLMetaElement>(
+        `meta[property="${property}"]`,
+      );
+
+      if (!element) {
+        element = document.createElement("meta");
+        element.setAttribute("property", property);
+        document.head.appendChild(element);
+      }
+
+      element.content = content;
+    };
+
+    const canonicalUrl = `${window.location.origin}/give`;
+
+    let canonical = document.querySelector<HTMLLinkElement>(
+      'link[rel="canonical"]',
+    );
+
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.rel = "canonical";
+      document.head.appendChild(canonical);
+    }
+
+    canonical.href = canonicalUrl;
+
+    setMeta("description", description);
+    setMeta("robots", "index, follow");
+    setMeta("twitter:card", "summary_large_image");
+    setMeta("twitter:title", title);
+    setMeta("twitter:description", description);
+
+    setProperty("og:type", "website");
+    setProperty("og:title", title);
+    setProperty("og:description", description);
+    setProperty("og:url", canonicalUrl);
+    setProperty("og:site_name", "The Pavilion of His Majesty");
+  }, []);
 
   return (
     <div>

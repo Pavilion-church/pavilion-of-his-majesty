@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-
+import { usePageMeta } from "../hooks/usePageMeta";
 import {
   ArrowRight,
   CalendarDays,
@@ -54,6 +54,12 @@ const featuredMinistries = [
 ];
 
 export default function Home() {
+  usePageMeta({
+    title: "The Pavilion of His Majesty | RCCG, Oyo",
+    description:
+      "Welcome to The Pavilion of His Majesty, a parish of the Redeemed Christian Church of God in Akinmoorin, Oyo, Nigeria. Discover our church, ministries, worship programmes and upcoming events.",
+    path: "/",
+  });
   return (
     <div className="overflow-hidden">
       <section className="relative min-h-[calc(100vh-5rem)] overflow-hidden bg-[#07152f]">

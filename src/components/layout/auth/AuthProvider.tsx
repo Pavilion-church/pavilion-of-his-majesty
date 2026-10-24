@@ -1,8 +1,10 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -46,45 +48,63 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Prevent old profile requests from overwriting newer authentication state.
+  const profileRequestId = useRef(0);
+
+  // Prevent initial session retrieval from overwriting a newer auth event.
+  const authEventId = useRef(0);
+
   const user = session?.user ?? null;
 
-  const loadProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select(
-        `
-        id,
-        first_name,
-        last_name,
-        phone,
-        role,
-        membership_status,
-        created_at,
-        updated_at
-      `,
-      )
-      .eq("id", userId)
-      .maybeSingle();
+  const loadProfile = useCallback(async (userId: string) => {
+    const requestId = ++profileRequestId.current;
 
-    if (error) {
-      console.error("Unable to load profile:", error);
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select(
+          `
+            id,
+            first_name,
+            last_name,
+            phone,
+            role,
+            membership_status,
+            created_at,
+            updated_at
+          `,
+        )
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (requestId !== profileRequestId.current) return;
+
+      if (error) {
+        console.error("Unable to load profile:", error);
+        setProfile(null);
+        return;
+      }
+
+      setProfile(data as Profile | null);
+    } catch (error) {
+      if (requestId !== profileRequestId.current) return;
+
+      console.error("Unexpected error loading profile:", error);
       setProfile(null);
-      return;
     }
+  }, []);
 
-    setProfile(data as Profile | null);
-  };
-
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     if (!user) {
+      ++profileRequestId.current;
       setProfile(null);
       return;
     }
 
     await loadProfile(user.id);
-  };
+  }, [user, loadProfile]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
 
     if (error) {
@@ -92,54 +112,95 @@ export function AuthProvider({ children }: AuthProviderProps) {
       throw error;
     }
 
+    // Invalidate pending profile requests immediately.
+    ++profileRequestId.current;
     setSession(null);
     setProfile(null);
-  };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
 
-    const initializeAuth = async () => {
-      const {
-        data: { session: currentSession },
-      } = await supabase.auth.getSession();
-
-      if (!mounted) return;
-
-      setSession(currentSession);
-
-      if (currentSession?.user) {
-        await loadProfile(currentSession.user.id);
-      }
-
-      if (mounted) {
-        setLoading(false);
-      }
-    };
-
-    initializeAuth();
-
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+    } = supabase.auth.onAuthStateChange((_event, newSession) => {
       if (!mounted) return;
+
+      // Mark this event as newer than any pending initial session lookup.
+      ++authEventId.current;
 
       setSession(newSession);
 
-      if (newSession?.user) {
-        await loadProfile(newSession.user.id);
-      } else {
+      if (!newSession?.user) {
+        ++profileRequestId.current;
         setProfile(null);
+        setLoading(false);
+        return;
       }
 
-      setLoading(false);
+      // Finish the synchronous auth callback before querying Supabase again.
+      // This helps avoid auth-lock/deadlock issues.
+      Promise.resolve().then(async () => {
+        if (!mounted) return;
+
+        await loadProfile(newSession.user.id);
+
+        if (mounted) {
+          setLoading(false);
+        }
+      });
     });
+
+    const initializeAuth = async () => {
+      const initialAuthEventId = authEventId.current;
+
+      try {
+        const {
+          data: { session: currentSession },
+          error,
+        } = await supabase.auth.getSession();
+
+        if (!mounted) return;
+
+        if (error) {
+          console.error("Unable to initialise authentication:", error);
+        }
+
+        // A newer sign-in/sign-out event has already arrived.
+        if (initialAuthEventId !== authEventId.current) return;
+
+        setSession(currentSession);
+
+        if (currentSession?.user) {
+          await loadProfile(currentSession.user.id);
+        } else {
+          ++profileRequestId.current;
+          setProfile(null);
+        }
+      } catch (error) {
+        if (!mounted) return;
+
+        console.error("Authentication initialisation failed:", error);
+
+        if (initialAuthEventId === authEventId.current) {
+          setSession(null);
+          setProfile(null);
+        }
+      } finally {
+        if (mounted && initialAuthEventId === authEventId.current) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void initializeAuth();
 
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      ++profileRequestId.current;
     };
-  }, []);
+  }, [loadProfile]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -154,7 +215,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       signOut,
       refreshProfile,
     }),
-    [session, user, profile, loading],
+    [session, user, profile, loading, signOut, refreshProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

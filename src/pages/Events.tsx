@@ -9,6 +9,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { usePageMeta } from "../hooks/usePageMeta";
 import { supabase } from "../lib/supabase";
 
 type ChurchEvent = {
@@ -46,6 +47,13 @@ export default function Events() {
   const [events, setEvents] = useState<ChurchEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+    usePageMeta({
+      title:
+        "Church Events & Programmes | The Pavilion of His Majesty, RCCG Oyo",
+      description:
+        "Explore upcoming church events, celebrations and programmes at The Pavilion of His Majesty, RCCG, Akinmoorin, Oyo, Oyo State.",
+      path: "/events",
+    });
 
   useEffect(() => {
     async function loadEvents() {

@@ -36,6 +36,8 @@ import AdminMessages from "./pages/admin/AdminMessages";
 import AdminEvents from "./pages/admin/AdminEvents";
 import AdminMembers from "./pages/admin/AdminMembers";
 import AdminCooperative from "./pages/admin/AdminCooperative";
+import SuperAdminRoute from "./components/layout/auth/SuperAdminRoute";
+import AdminAdministrators from "./components/layout/Admin/AdminAdministrators";
 
 export const router = createBrowserRouter([
   /*
@@ -193,6 +195,15 @@ export const router = createBrowserRouter([
           {
             path: "/admin/cooperative",
             element: <AdminCooperative />,
+          },
+          {
+            element: <SuperAdminRoute />,
+            children: [
+              {
+                path: "/admin/administrators",
+                element: <AdminAdministrators />,
+              },
+            ],
           },
         ],
       },

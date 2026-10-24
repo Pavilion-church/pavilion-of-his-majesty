@@ -31,6 +31,17 @@ export default function AdminLayout() {
   const location = useLocation();
   const { profile, signOut, isSuperAdmin } = useAuth();
 
+  const visibleNavigation = isSuperAdmin
+    ? [
+        ...navigation,
+        {
+          label: "Administrators",
+          to: "/admin/administrators",
+          icon: ShieldCheck,
+        },
+      ]
+    : navigation;
+
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, [location.pathname]);
@@ -113,7 +124,7 @@ export default function AdminLayout() {
             </p>
 
             <nav className="space-y-1">
-              {navigation.map((item) => {
+              {visibleNavigation.map((item) => {
                 const Icon = item.icon;
 
                 return (

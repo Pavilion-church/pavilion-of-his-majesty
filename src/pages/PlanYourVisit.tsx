@@ -11,7 +11,7 @@ import {
   Phone,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-
+import { useEffect } from "react";
 import { churchInfo, weeklyProgrammes } from "../assets/data";
 import churchBuildingImage from "../assets/images/church-building.png";
 
@@ -51,6 +51,68 @@ function WhatsAppIcon({ size = 20 }: { size?: number }) {
 }
 
 export default function PlanYourVisit() {
+    useEffect(() => {
+      const title = "Plan Your Visit | The Pavilion of His Majesty, RCCG Oyo";
+
+      const description =
+        "Plan your visit to The Pavilion of His Majesty, RCCG, in Akinmoorin, Oyo, Oyo State. Find our church address, weekly programme times, directions and contact details. We look forward to welcoming you.";
+
+      document.title = title;
+
+      const setMeta = (name: string, content: string) => {
+        let element = document.querySelector<HTMLMetaElement>(
+          `meta[name="${name}"]`,
+        );
+
+        if (!element) {
+          element = document.createElement("meta");
+          element.setAttribute("name", name);
+          document.head.appendChild(element);
+        }
+
+        element.content = content;
+      };
+
+      const setProperty = (property: string, content: string) => {
+        let element = document.querySelector<HTMLMetaElement>(
+          `meta[property="${property}"]`,
+        );
+
+        if (!element) {
+          element = document.createElement("meta");
+          element.setAttribute("property", property);
+          document.head.appendChild(element);
+        }
+
+        element.content = content;
+      };
+
+      const canonicalUrl = `${window.location.origin}/plan-your-visit`;
+
+      let canonical = document.querySelector<HTMLLinkElement>(
+        'link[rel="canonical"]',
+      );
+
+      if (!canonical) {
+        canonical = document.createElement("link");
+        canonical.rel = "canonical";
+        document.head.appendChild(canonical);
+      }
+
+      canonical.href = canonicalUrl;
+
+      setMeta("description", description);
+      setMeta("robots", "index, follow");
+      setMeta("twitter:card", "summary_large_image");
+      setMeta("twitter:title", title);
+      setMeta("twitter:description", description);
+
+      setProperty("og:type", "website");
+      setProperty("og:title", title);
+      setProperty("og:description", description);
+      setProperty("og:url", canonicalUrl);
+      setProperty("og:site_name", "The Pavilion of His Majesty");
+    }, []);
   return (
     <main className="overflow-hidden bg-[#F8F6F1] text-[#07152F]">
       {/* Hero */}
