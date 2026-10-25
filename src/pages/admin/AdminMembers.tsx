@@ -61,6 +61,7 @@ export default function AdminMembers() {
         .select(
           "id, first_name, last_name, phone, role, membership_status, created_at",
         )
+        .neq("role", "super_admin")
         .order("created_at", { ascending: false });
 
       if (queryError) throw queryError;
@@ -293,11 +294,13 @@ export default function AdminMembers() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="font-semibold text-[#07152F]">{name}</h3>
-                        <span
-                          className={`rounded-full border px-2.5 py-1 text-xs font-medium ${statusStyles[member.membership_status]}`}
-                        >
-                          {member.membership_status}
-                        </span>
+                        {member.role === "member" && (
+                          <span
+                            className={`rounded-full border px-2.5 py-1 text-xs font-medium ${statusStyles[member.membership_status]}`}
+                          >
+                            {member.membership_status}
+                          </span>
+                        )}
                         {member.role !== "member" && (
                           <span className="inline-flex items-center gap-1 rounded-full border border-[#D6B45A]/40 bg-[#D6B45A]/10 px-2.5 py-1 text-xs font-medium text-[#785B14]">
                             <ShieldCheck size={13} />
