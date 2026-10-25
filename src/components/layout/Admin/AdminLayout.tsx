@@ -153,7 +153,7 @@ export default function AdminLayout() {
         <main className="min-w-0">
           <div className="border-b border-[#07152F]/10 bg-white lg:hidden">
             <nav className="flex gap-2 overflow-x-auto px-4 py-3 sm:px-6">
-              {navigation.map((item) => {
+              {visibleNavigation.map((item) => {
                 const Icon = item.icon;
 
                 return (

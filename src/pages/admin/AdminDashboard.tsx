@@ -1,25 +1,37 @@
-import { Cake, CalendarDays, Users, Megaphone } from "lucide-react";
+import { Cake, CalendarDays, HandCoins, Mail, Users } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const adminSections = [
   {
     title: "Members",
     description: "Review and manage church member accounts.",
     icon: Users,
+    to: "/admin/members",
   },
   {
     title: "Birthday submissions",
     description: "Review birthdays, view photos and manage celebrations.",
     icon: Cake,
+    to: "/admin/birthdays",
   },
   {
     title: "Events",
     description: "Manage church programmes and upcoming events.",
     icon: CalendarDays,
+    to: "/admin/events",
   },
   {
-    title: "Announcements",
-    description: "Publish important updates for the congregation.",
-    icon: Megaphone,
+    title: "Contact Messages",
+    description:
+      "View and manage messages submitted through the church website.",
+    icon: Mail,
+    to: "/admin/messages",
+  },
+  {
+    title: "Cooperative Interest",
+    description: "Review and manage members' cooperative interest submissions.",
+    icon: HandCoins,
+    to: "/admin/cooperative",
   },
 ];
 
@@ -41,16 +53,17 @@ export default function AdminDashboard() {
         </p>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2">
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
         {adminSections.map((section) => {
           const Icon = section.icon;
 
           return (
-            <div
+            <Link
               key={section.title}
-              className="rounded-2xl border border-[#07152F]/10 bg-white p-6"
+              to={section.to}
+              className="group rounded-2xl border border-[#07152F]/10 bg-white p-6 transition duration-200 hover:-translate-y-1 hover:border-[#D6B45A]/60 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D6B45A]"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#D6B45A]/10">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#D6B45A]/10 transition group-hover:bg-[#D6B45A]/20">
                 <Icon size={24} className="text-[#D6B45A]" />
               </div>
 
@@ -61,7 +74,17 @@ export default function AdminDashboard() {
               <p className="mt-2 text-sm leading-6 text-[#07152F]/60">
                 {section.description}
               </p>
-            </div>
+
+              <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#07152F]">
+                Open section
+                <span
+                  aria-hidden="true"
+                  className="transition group-hover:translate-x-1"
+                >
+                  →
+                </span>
+              </span>
+            </Link>
           );
         })}
       </div>
