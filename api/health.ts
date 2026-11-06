@@ -9,9 +9,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabaseKey) {
     return res.status(500).json({
       status: "error",
       message: "Health check configuration is missing",
@@ -20,40 +20,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const response = await fetch(
-      `${supabaseUrl.replace(/\/$/, "")}/rest/v1/rpc/pavilion_health_check`,
+      `${supabaseUrl.replace(/\/$/, "")}/rest/v1/uptime_checks?select=id&limit=1`,
       {
-        method: "POST",
+        method: "GET",
         headers: {
-          apikey: supabaseAnonKey,
-          Authorization: `Bearer ${supabaseAnonKey}`,
-          "Content-Type": "application/json",
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
         },
-        body: JSON.stringify({}),
         signal: AbortSignal.timeout(10000),
       },
     );
 
     if (!response.ok) {
-      const errorDetails = await response.text();
+      const details = await response.text();
 
-      console.error("Supabase RPC Error:", {
+      console.error("Supabase health check failed:", {
         status: response.status,
-        details: errorDetails,
+        details,
       });
 
       return res.status(503).json({
         status: "error",
-        message: "Supabase health check failed",
+        message: "Supabase database check failed",
         supabaseStatus: response.status,
       });
     }
 
     const result: unknown = await response.json();
 
-    if (result !== true) {
+    if (!Array.isArray(result) || result.length === 0 || result[0]?.id !== 1) {
       return res.status(503).json({
         status: "error",
-        message: "Unexpected health check response",
+        message: "Unexpected database response",
       });
     }
 
@@ -62,7 +60,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       database: "connected",
       timestamp: new Date().toISOString(),
     });
-  } catch {
+  } catch (error) {
+    console.error("Supabase connection error:", error);
+
     return res.status(503).json({
       status: "error",
       message: "Unable to reach Supabase",
