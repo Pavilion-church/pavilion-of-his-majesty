@@ -10,98 +10,80 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect } from "react";
+
 import {
   churchInfo,
   churchStory,
   churchJourney,
   churchLeadership,
+  formerLeadership,
   churchValues,
 } from "../assets/data";
 import churchBuildingImage from "../assets/images/church-building.png";
-import adedokunImage from "../assets/images/pastor-and-mrs-adedokun.png";
-import adetunjiImage from "../assets/images/pastor-and-mummy-adetunji.jpeg";
-
 const valueIcons = [Heart, BookOpen, HandHeart, Church];
 
-const formerLeadership = [
-  {
-    names: "Pastor and Mrs Adedokun",
-    image: adedokunImage,
-    alt: "Pastor and Mrs Adedokun in traditional attire",
-    caption:
-      "Remembering the pastors and families who contributed to the parish's growth and spiritual life.",
-  },
-  {
-    names: "Pastor and Mrs Adetunji",
-    image: adetunjiImage,
-    alt: "Pastor and Mrs Adetunji standing inside the church",
-    caption:
-      "Honouring their place in the continuing story of The Pavilion of His Majesty.",
-  },
-];
-
 export default function About() {
-    useEffect(() => {
-      const title = "About Us | The Pavilion of His Majesty, RCCG Oyo";
-      const description =
-        "Discover the history, vision, leadership and values of The Pavilion of His Majesty, RCCG, in Akinmoorin, Oyo, Oyo State. Learn about our journey and plan your visit.";
+  useEffect(() => {
+    const title = "About Us | The Pavilion of His Majesty, RCCG Oyo";
+    const description =
+      "Discover the history, vision, leadership and values of The Pavilion of His Majesty, RCCG, in Akinmoorin, Oyo, Oyo State. Learn about our journey and plan your visit.";
 
-      document.title = title;
+    document.title = title;
 
-      const setMeta = (name: string, content: string) => {
-        let element = document.querySelector<HTMLMetaElement>(
-          `meta[name="${name}"]`,
-        );
-
-        if (!element) {
-          element = document.createElement("meta");
-          element.setAttribute("name", name);
-          document.head.appendChild(element);
-        }
-
-        element.content = content;
-      };
-
-      const setProperty = (property: string, content: string) => {
-        let element = document.querySelector<HTMLMetaElement>(
-          `meta[property="${property}"]`,
-        );
-
-        if (!element) {
-          element = document.createElement("meta");
-          element.setAttribute("property", property);
-          document.head.appendChild(element);
-        }
-
-        element.content = content;
-      };
-
-      const canonicalUrl = `${window.location.origin}/about`;
-
-      let canonical = document.querySelector<HTMLLinkElement>(
-        'link[rel="canonical"]',
+    const setMeta = (name: string, content: string) => {
+      let element = document.querySelector<HTMLMetaElement>(
+        `meta[name="${name}"]`,
       );
 
-      if (!canonical) {
-        canonical = document.createElement("link");
-        canonical.rel = "canonical";
-        document.head.appendChild(canonical);
+      if (!element) {
+        element = document.createElement("meta");
+        element.setAttribute("name", name);
+        document.head.appendChild(element);
       }
 
-      canonical.href = canonicalUrl;
+      element.content = content;
+    };
 
-      setMeta("description", description);
-      setMeta("robots", "index, follow");
-      setMeta("twitter:card", "summary_large_image");
-      setMeta("twitter:title", title);
-      setMeta("twitter:description", description);
+    const setProperty = (property: string, content: string) => {
+      let element = document.querySelector<HTMLMetaElement>(
+        `meta[property="${property}"]`,
+      );
 
-      setProperty("og:type", "website");
-      setProperty("og:title", title);
-      setProperty("og:description", description);
-      setProperty("og:url", canonicalUrl);
-      setProperty("og:site_name", "The Pavilion of His Majesty");
-    }, []);
+      if (!element) {
+        element = document.createElement("meta");
+        element.setAttribute("property", property);
+        document.head.appendChild(element);
+      }
+
+      element.content = content;
+    };
+
+    const canonicalUrl = `${window.location.origin}/about`;
+
+    let canonical = document.querySelector<HTMLLinkElement>(
+      'link[rel="canonical"]',
+    );
+
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.rel = "canonical";
+      document.head.appendChild(canonical);
+    }
+
+    canonical.href = canonicalUrl;
+
+    setMeta("description", description);
+    setMeta("robots", "index, follow");
+    setMeta("twitter:card", "summary_large_image");
+    setMeta("twitter:title", title);
+    setMeta("twitter:description", description);
+
+    setProperty("og:type", "website");
+    setProperty("og:title", title);
+    setProperty("og:description", description);
+    setProperty("og:url", canonicalUrl);
+    setProperty("og:site_name", "The Pavilion of His Majesty");
+  }, []);
 
   return (
     <main className="overflow-hidden bg-[#F8F6F1] text-[#07152F]">
@@ -291,6 +273,11 @@ export default function About() {
                   <h3 className="font-serif text-2xl font-semibold sm:text-3xl">
                     {leader.names}
                   </h3>
+                  {leader.servicePeriod && (
+                    <p className="mt-3 inline-flex rounded-full bg-[#F8F6F1] px-4 py-2 text-xs font-semibold tracking-wide text-[#9A7426] sm:text-sm">
+                      {leader.servicePeriod}
+                    </p>
+                  )}
                   <p className="mt-3 text-sm leading-7 text-[#07152F]/65 sm:text-base">
                     {leader.caption}
                   </p>

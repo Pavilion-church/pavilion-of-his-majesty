@@ -7,6 +7,12 @@ import evangelismImage from "./images/evangelism.jpeg";
 import mediaImage from "./images/media.jpeg";
 import welfareImage from "./images/welfare.jpeg";
 
+// Pastoral leadership images used in the church history section.
+import adedokunImage from "./images/pastor-and-mrs-adedokun.png";
+import ayooluwaImage from "./images/pastor-ayooluwa-and-deaconess-ayooluwa.jpeg";
+import ayindeImage from "./images/pastor-ayinde-wale-and-deaconess-ayinde.jpeg";
+import adetunjiImage from "./images/pastor-and-mummy-adetunji.jpeg";
+
 export const churchInfo = {
   name: "The Pavilion of His Majesty",
   denomination: "The Redeemed Christian Church of God",
@@ -53,7 +59,6 @@ export const weeklyProgrammes = [
     time: "5:30 PM – 6:30 PM",
     description: "A time of deeper study of God's Word and spiritual growth.",
   },
-
   {
     day: "Thursday",
     title: "Faith Clinic",
@@ -61,7 +66,6 @@ export const weeklyProgrammes = [
     description:
       "A time of prayer, faith-building and spiritual strengthening.",
   },
-
   {
     day: "Sunday",
     title: "Sunday Service",
@@ -165,7 +169,6 @@ export const givingInfo = {
   note: "Thank you for supporting the work of God through your giving. Please ensure you confirm the account details before making a transfer.",
 };
 
-
 export const churchStory = {
   eyebrow: "Our Story",
   title: "A journey of faith, growth and God's faithfulness.",
@@ -212,6 +215,50 @@ export const churchLeadership = {
     "The parish is currently overseen by Pastor Ayodele Okegbade, who provides pastoral leadership as the church continues its work of worship, spiritual growth and service.",
 };
 
+export type FormerLeadershipEntry = {
+  names: string;
+  image: string;
+  alt: string;
+  caption: string;
+  servicePeriod?: string;
+};
+
+// Add future former pastors here. The servicePeriod field is optional;
+// cards without a supplied period will simply omit the dates.
+export const formerLeadership: FormerLeadershipEntry[] = [
+  {
+    names: "Pastor and Mrs Adedokun",
+    image: adedokunImage,
+    alt: "Pastor and Mrs Adedokun",
+    caption:
+      "Remembering the pastors and families who contributed to the parish's growth and spiritual life.",
+  },
+  {
+    names: "Pastor Ayooluwa and Deaconess Ayooluwa",
+    image: ayooluwaImage,
+    alt: "Pastor Ayooluwa and Deaconess Ayooluwa",
+    servicePeriod: "1 September 2014 – 18 September 2018",
+    caption:
+      "Honouring their service and contribution to the continuing story of The Pavilion of His Majesty.",
+  },
+  {
+    names: "Pastor Ayinde Wale and Deaconess Ayinde Joke Charlotte",
+    image: ayindeImage,
+    alt: "Pastor Ayinde Wale and Deaconess Ayinde Joke Charlotte",
+    servicePeriod: "2 June 2019 – 10 February 2025",
+    caption:
+      "With gratitude for their leadership, dedication and contribution to the life of the parish.",
+  },
+  {
+    names: "Pastor and Mrs Adetunji",
+    image: adetunjiImage,
+    alt: "Pastor and Mrs Adetunji",
+    servicePeriod: "February 2025 – February 2026",
+    caption:
+      "Honouring their place in the continuing story of The Pavilion of His Majesty.",
+  },
+];
+
 export const churchValues = [
   {
     title: "Worship",
@@ -233,4 +280,3 @@ export const churchValues = [
       "Building a welcoming church family where people can grow together in faith.",
   },
 ];
-
