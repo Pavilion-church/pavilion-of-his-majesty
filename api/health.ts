@@ -34,9 +34,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     );
 
     if (!response.ok) {
+      const errorDetails = await response.text();
+
+      console.error("Supabase RPC Error:", {
+        status: response.status,
+        details: errorDetails,
+      });
+
       return res.status(503).json({
         status: "error",
         message: "Supabase health check failed",
+        supabaseStatus: response.status,
       });
     }
 
